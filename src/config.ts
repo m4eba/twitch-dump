@@ -3,4 +3,7 @@ export interface Config {
   username: string;
   oauth: string;
   channel: string;
+  clientId: string;
+  secret: string;
+  statInterval: number;
 }
