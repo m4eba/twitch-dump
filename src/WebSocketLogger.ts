@@ -2,13 +2,14 @@ import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
 import { Config } from './config';
+import { EventEmitter } from 'events';
 
 enum Status {
   CLOSE,
   OPEN,
 }
 
-export abstract class WebSocketLogger {
+export abstract class WebSocketLogger extends EventEmitter {
   private status: Status = Status.CLOSE;
   protected config: Config;
   protected url: string = '';
@@ -22,6 +23,7 @@ export abstract class WebSocketLogger {
   private buffer: WebSocket.Data[] = [];
 
   constructor(url: string, folder: string, config: Config) {
+    super();
     this.url = url;
     this.folder = folder;
     this.config = config;

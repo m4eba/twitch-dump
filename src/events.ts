@@ -32,6 +32,20 @@ export class Events extends WebSocketLogger {
       });
   }
 
+  protected onMessage(data: WebSocket.Data): void {
+    if (this.channel === null) throw new Error('channel not defined');
+    const obj = JSON.parse(data.toString());
+    if (
+      obj.data &&
+      obj.data.topic === `video-playback-by-id.${this.channel.id}`
+    ) {
+      const msg = JSON.parse(obj.data.message);
+      if (msg.type === 'stream-up') {
+        this.emit('stream-up');
+      }
+    }
+  }
+
   public topics() {
     if (this.user === null) throw new Error('user not defined');
     if (this.channel === null) throw new Error('channel not defined');
