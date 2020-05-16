@@ -10,12 +10,9 @@ export class Events extends WebSocketLogger {
   private channel: Channel | null = null;
   private token: AccessToken | null = null;
 
-  constructor(config: Config) {
+  constructor(config: Config, client: TwitchClient) {
     super('wss://pubsub-edge.twitch.tv/v1', 'events', config);
-    this.client = TwitchClient.withClientCredentials(
-      this.config.clientId,
-      this.config.secret
-    );
+    this.client = client;
   }
 
   protected onOpen(): void {
