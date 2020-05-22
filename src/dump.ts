@@ -6,12 +6,14 @@ import { Events } from './events';
 import Video from './video';
 
 const config: Config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+const dump = new Set<Dump>();
+config.dump.forEach((d) => dump.add(d));
+config.dump = dump;
 
 const client = TwitchClient.withClientCredentials(
   config.clientId,
   config.secret
 );
-console.log('config dump', config.dump);
 
 if (config.dump.has(Dump.CHAT)) {
   const chat = new Chat(config);
