@@ -9,10 +9,20 @@ export class Events extends WebSocketLogger {
   private user: HelixUser | null = null;
   private channel: Channel | null = null;
   private token: AccessToken | null = null;
+  private onlyVideoNotify: boolean = false;
 
-  constructor(config: Config, client: TwitchClient) {
-    super('wss://pubsub-edge.twitch.tv/v1', 'events', config);
+  constructor(
+    config: Config,
+    client: TwitchClient,
+    onlyVideoNotify: boolean = false
+  ) {
+    super(
+      'wss://pubsub-edge.twitch.tv/v1',
+      onlyVideoNotify ? null : 'events',
+      config
+    );
     this.client = client;
+    this.onlyVideoNotify = onlyVideoNotify;
   }
 
   protected onOpen(): void {
@@ -52,6 +62,7 @@ export class Events extends WebSocketLogger {
     if (this.ws === null) throw new Error('websocket not defined');
 
     this.listen(`video-playback-by-id.${this.channel.id}`);
+    if (this.onlyVideoNotify) return;
     this.listen(`hype-train-events-v1.${this.channel.id}`);
     this.listen(`leaderboard-events-v1.sub-gifts-sent-${this.channel.id}`);
     this.listen(

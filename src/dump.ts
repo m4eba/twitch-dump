@@ -1,6 +1,6 @@
 import fs from 'fs';
-import { Config } from './config';
-/*import { Chat } from './chat';*/
+import { Config, Dump } from './config';
+import { Chat } from './chat';
 import TwitchClient from 'twitch';
 import { Events } from './events';
 import Video from './video';
@@ -11,18 +11,26 @@ const client = TwitchClient.withClientCredentials(
   config.clientId,
   config.secret
 );
-/*
-const chat = new Chat(config);
-chat.open();
+console.log('config dump', config.dump);
 
-//const stats = new Stats(config);
-//stats.on('stream', (id: string) => {});
-//stats.start();
-*/
+if (config.dump.has(Dump.CHAT)) {
+  const chat = new Chat(config);
+  chat.open();
+}
 
-const video = new Video(config);
-const events = new Events(config, client);
-events.open();
-events.on('stream-up', () => {
-  video.start();
-});
+let events: Events | null = null;
+
+if (config.dump.has(Dump.EVENTS)) {
+  events = new Events(config, client);
+  events.open();
+}
+
+if (config.dump.has(Dump.VIDEO)) {
+  const video = new Video(config);
+  if (events === null) {
+    events = new Events(config, client, true);
+  }
+  events.on('stream-up', () => {
+    video.start();
+  });
+}

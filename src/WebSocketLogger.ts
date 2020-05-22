@@ -13,7 +13,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   private status: Status = Status.CLOSE;
   protected config: Config;
   protected url: string = '';
-  protected folder: string = '';
+  protected folder: string | null = null;
   protected ws: WebSocket | null = null;
   private pingInt: NodeJS.Timeout | null = null;
   private pingTimeout: NodeJS.Timer | null = null;
@@ -22,7 +22,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   private currentDay: number = 0;
   private buffer: WebSocket.Data[] = [];
 
-  constructor(url: string, folder: string, config: Config) {
+  constructor(url: string, folder: string | null, config: Config) {
     super();
     this.url = url;
     this.folder = folder;
@@ -84,6 +84,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   }
 
   private writeData(data: WebSocket.Data) {
+    if (this.folder === null) return;
     this.buffer.push(data);
     if (this.out === null) {
       this.buffer.push(data);
@@ -110,6 +111,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   }
 
   private async openStream() {
+    if (this.folder === null) return;
     this.fileIsOpening = true;
     const time = new Date();
     const year = time.getFullYear().toString();
