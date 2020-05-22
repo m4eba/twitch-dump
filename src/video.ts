@@ -42,6 +42,7 @@ export class Video {
     let month = (time.getMonth() + 1).toString();
     if (month.length === 1) month = '0' + month;
 
+    this.sequenceNumber = -1;
     this.folder = path.join(
       this.config.path,
       'video',
@@ -62,6 +63,7 @@ export class Video {
     this.downloading = true;
     this.handleList(list);
     this.refreshInt = setInterval(() => {
+      console.log('refresh interval');
       this.list(variant).then(this.handleList.bind(this));
     }, list.segments[0].duration * 1000);
   }
@@ -75,10 +77,12 @@ export class Video {
           `${seg.mediaSequenceNumber},${seg.duration},${time}\n`
         );
       }
+      console.log('download segment', seg.mediaSequenceNumber);
       this.downloadSegment(seg);
       this.sequenceNumber = seg.mediaSequenceNumber;
     });
     if (list.endlist && this.refreshInt) {
+      console.log('ENDLIST');
       this.downloading = false;
       clearInterval(this.refreshInt);
     }
@@ -124,6 +128,7 @@ export class Video {
     const list: HLS.types.MediaPlaylist = HLS.parse(
       text
     ) as HLS.types.MediaPlaylist;
+    console.log('playlist', list);
     return list;
   }
 
@@ -149,6 +154,7 @@ export class Video {
       if (prev.bandwidth < curr.bandwidth) {
         result = curr;
       }
+      console.log('best list', result);
       return result;
     });
     return best;
