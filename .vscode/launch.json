@@ -4,14 +4,14 @@
     {
       "type": "node",
       "request": "launch",
-      "name": "task1 cli",
-      "program": "${workspaceFolder}/packages/cli/build/task1.js",
-      "args": ["project", "create", "-n", "test"],
+      "name": "twitch-dump",
+      "program": "${workspaceFolder}/build/dump.js",
+      "args": [],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,
       "windows": {
-        "program": "${workspaceFolder}/packages/cli/build/task1.js"
+        "program": "${workspaceFolder}/build/dump.js"
       }
     },
     {
