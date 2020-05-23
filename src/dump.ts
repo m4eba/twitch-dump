@@ -31,6 +31,7 @@ if (config.dump.has(Dump.VIDEO)) {
   const video = new Video(config);
   if (events === null) {
     events = new Events(config, client, true);
+    events.open();
   }
   events.on('stream-up', () => {
     video.start();
