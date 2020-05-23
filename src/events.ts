@@ -47,12 +47,14 @@ export class Events extends WebSocketLogger {
     const obj = JSON.parse(data.toString());
     if (
       obj.data &&
-      obj.data.topic === `video-playback-by-id.${this.channel.id}`
+      (obj.data.topic === `video-playback-by-id.${this.channel.id}` ||
+        obj.data.topic === `broadcast-settings-update.${this.channel.id}`)
     ) {
-      const msg = JSON.parse(obj.data.message);
+      this.emit('stream-up');
+      /*const msg = JSON.parse(obj.data.message);
       if (msg.type === 'stream-up') {
         this.emit('stream-up');
-      }
+      }*/
     }
   }
 
@@ -62,6 +64,7 @@ export class Events extends WebSocketLogger {
     if (this.ws === null) throw new Error('websocket not defined');
 
     this.listen(`video-playback-by-id.${this.channel.id}`);
+    this.listen(`broadcast-settings-update.${this.channel.id}`);
     if (this.onlyVideoNotify) return;
     this.listen(`hype-train-events-v1.${this.channel.id}`);
     this.listen(`leaderboard-events-v1.sub-gifts-sent-${this.channel.id}`);
@@ -69,7 +72,6 @@ export class Events extends WebSocketLogger {
       `leaderboard-events-v1.bits-usage-by-channel-v1-${this.channel.id}-WEEK`
     );
     this.listen(`stream-chat-room-v1.${this.channel.id}`);
-    this.listen(`broadcast-settings-update.${this.channel.id}`);
     this.listen(`community-points-channel-v1.${this.channel.id}`);
     this.listen(`extension-control.${this.channel.id}`);
     this.listen(`stream-change-by-channel.${this.channel.id}`);

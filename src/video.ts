@@ -12,8 +12,16 @@ interface AccessToken {
   sig: string;
   expires_at: string;
 }
+
+export enum VideoStatus {
+  IDLE,
+  INITIALIZING,
+  DOWNLOADING,
+}
+
 export class Video {
   private config: Config;
+  private status: VideoStatus = VideoStatus.IDLE;
   private sequenceNumber = -1;
   private segmentInfo: fs.WriteStream | null = null;
   private segmentLog: fs.WriteStream | null = null;
@@ -26,7 +34,8 @@ export class Video {
   }
 
   public start() {
-    if (this.downloading) return;
+    if (this.status != VideoStatus.IDLE) return;
+    this.status = VideoStatus.INITIALIZING;
     this.getAccessToken()
       .then((token) => {
         console.log('token', token);
@@ -58,14 +67,22 @@ export class Video {
       flags: 'a',
     });
 
-    const list = await this.list(variant);
-    if (list.segments.length === 0) return;
-    this.downloading = true;
-    this.handleList(list);
-    this.refreshInt = setInterval(() => {
-      console.log('refresh interval');
-      this.list(variant).then(this.handleList.bind(this));
-    }, list.segments[0].duration * 1000);
+    try {
+      const list = await this.list(variant);
+      if (list.segments.length === 0) {
+        this.status = VideoStatus.IDLE;
+        return;
+      }
+      this.status = VideoStatus.DOWNLOADING;
+      this.handleList(list);
+      this.refreshInt = setInterval(() => {
+        console.log('refresh interval');
+        this.list(variant).then(this.handleList.bind(this));
+      }, list.segments[0].duration * 1000);
+    } catch (e) {
+      console.log('unable to initialize download', e);
+      this.status = VideoStatus.IDLE;
+    }
   }
 
   private handleList(list: HLS.types.MediaPlaylist) {
@@ -83,7 +100,7 @@ export class Video {
     });
     if (list.endlist && this.refreshInt) {
       console.log('ENDLIST');
-      this.downloading = false;
+      this.status = VideoStatus.IDLE;
       clearInterval(this.refreshInt);
     }
   }
@@ -122,13 +139,18 @@ export class Video {
   private async list(
     variant: HLS.types.Variant
   ): Promise<HLS.types.MediaPlaylist> {
-    const resp = await fetch(variant.uri);
-    const text = await resp.text();
-    const list: HLS.types.MediaPlaylist = HLS.parse(
-      text
-    ) as HLS.types.MediaPlaylist;
-    console.log('playlist', list);
-    return list;
+    try {
+      const resp = await fetch(variant.uri);
+      const text = await resp.text();
+      const list: HLS.types.MediaPlaylist = HLS.parse(
+        text
+      ) as HLS.types.MediaPlaylist;
+      console.log('playlist', list);
+      return list;
+    } catch (e) {
+      console.log('unable to handle playlist', e);
+      return Promise.reject(e);
+    }
   }
 
   private async playlist(token: AccessToken): Promise<HLS.types.Variant> {
