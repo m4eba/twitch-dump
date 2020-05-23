@@ -107,7 +107,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   }
 
   private writeLine(line: string) {
-    this.out?.write(new Date().toISOString() + ' ' + line);
+    this.out?.write(new Date().toISOString() + ' ' + line + '\n');
   }
 
   private async openStream() {
