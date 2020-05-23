@@ -28,7 +28,7 @@ if (config.dump.has(Dump.EVENTS)) {
 }
 
 if (config.dump.has(Dump.VIDEO)) {
-  const video = new Video(config);
+  const video = new Video(config, client);
   if (events === null) {
     events = new Events(config, client, true);
     events.open();

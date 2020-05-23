@@ -6,6 +6,11 @@ const streamPipeline = util.promisify(require('stream').pipeline);
 import fetch from 'node-fetch';
 import HLS from 'hls-parser';
 import { Config } from './config';
+import TwitchClient from 'twitch';
+
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
 
 interface AccessToken {
   token: string;
@@ -21,6 +26,7 @@ export enum VideoStatus {
 
 export class Video {
   private config: Config;
+  private client: TwitchClient;
   private status: VideoStatus = VideoStatus.IDLE;
   private sequenceNumber = -1;
   private segmentInfo: fs.WriteStream | null = null;
@@ -29,8 +35,9 @@ export class Video {
   private refreshInt: NodeJS.Timeout | null = null;
   private downloading: boolean = false;
 
-  constructor(config: Config) {
+  constructor(config: Config, client: TwitchClient) {
     this.config = config;
+    this.client = client;
   }
 
   public start() {
@@ -75,6 +82,7 @@ export class Video {
       }
       this.status = VideoStatus.DOWNLOADING;
       this.handleList(list);
+      this.getStream();
       this.refreshInt = setInterval(() => {
         console.log('refresh interval');
         this.list(variant).then(this.handleList.bind(this));
@@ -85,6 +93,22 @@ export class Video {
     }
   }
 
+  private async getStream() {
+    for (;;) {
+      const stream = await this.client.helix.streams.getStreamByUserName(
+        this.config.channel
+      );
+      if (stream === null) {
+        await sleep(3000);
+        continue;
+      }
+      await fs.promises.writeFile(
+        this.folder + '-stream.json',
+        JSON.stringify(stream, null, '  ')
+      );
+      break;
+    }
+  }
   private handleList(list: HLS.types.MediaPlaylist) {
     list.segments.forEach((seg) => {
       if (seg.mediaSequenceNumber <= this.sequenceNumber) return;
