@@ -103,7 +103,6 @@ export class Video {
         const out = fs.createWriteStream(tmpName);
         await streamPipeline(resp.body, out);
         await fs.promises.rename(tmpName, name);
-        await fs.promises.unlink(tmpName);
         if (this.segmentLog) {
           this.segmentLog.write(
             new Date().toISOString() + ` ${segment.mediaSequenceNumber} ok\n`
