@@ -174,6 +174,7 @@ export class Video {
             new Date().toISOString() + ` ${segment.mediaSequenceNumber} ok\n`
           );
         }
+        return;
       } catch (e) {
         debug(
           'unable to download segment %d: %o',
