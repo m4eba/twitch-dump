@@ -7,6 +7,9 @@ import fetch from 'node-fetch';
 import HLS from 'hls-parser';
 import { Config } from './config';
 import TwitchClient from 'twitch';
+import Debug from 'debug';
+
+const debug = Debug('video');
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -41,23 +44,29 @@ export class Video {
   }
 
   public start() {
-    if (this.status != VideoStatus.IDLE) return;
+    if (this.status != VideoStatus.IDLE) {
+      debug('status not idle');
+      return;
+    }
+    debug('start: status=initializing');
     this.status = VideoStatus.INITIALIZING;
     this.getAccessToken()
       .then((token) => {
-        console.log('token', token);
+        debug('accesstoken %o', token);
         return this.playlist(token);
       })
       .then((list: HLS.types.Variant) => {
         this.initDownload(list);
       })
       .catch((e) => {
+        debug('unable to initDownload %o', e);
         console.log('unable to initDownload', e);
         this.status = VideoStatus.IDLE;
       });
   }
 
   private async initDownload(variant: HLS.types.Variant) {
+    debug('initDownload');
     const time = new Date();
     let month = (time.getMonth() + 1).toString();
     if (month.length === 1) month = '0' + month;
@@ -70,6 +79,7 @@ export class Video {
       month,
       time.toISOString()
     );
+    debug('folder %s', this.folder);
     await fs.promises.mkdir(this.folder, { recursive: true });
     this.segmentInfo = fs.createWriteStream(this.folder + '.txt', {
       flags: 'a',
@@ -81,31 +91,38 @@ export class Video {
     try {
       const list = await this.list(variant);
       if (list.segments.length === 0) {
+        debug('list empty set status to idle');
         this.status = VideoStatus.IDLE;
         return;
       }
+      debug('set status to downloading');
       this.status = VideoStatus.DOWNLOADING;
       this.handleList(list);
       this.getStream();
       this.refreshInt = setInterval(() => {
-        console.log('refresh interval');
+        debug('refresh interval');
         this.list(variant).then(this.handleList.bind(this));
       }, list.segments[0].duration * 1000);
     } catch (e) {
+      debug('unable to initialize download %o', e);
       console.log('unable to initialize download', e);
+      debug('set status to idle');
       this.status = VideoStatus.IDLE;
     }
   }
 
   private async getStream() {
     for (;;) {
+      debug('getStream');
       const stream = await this.client.helix.streams.getStreamByUserName(
         this.config.channel
       );
       if (stream === null) {
+        debug('stream is null, wait 3 seconds');
         await sleep(3000);
         continue;
       }
+      debug('stream found %o', stream);
       await fs.promises.writeFile(
         this.folder + '-stream.json',
         JSON.stringify(stream, null, '  ')
@@ -114,6 +131,7 @@ export class Video {
     }
   }
   private handleList(list: HLS.types.MediaPlaylist) {
+    debug('handleList, size %d', list.segments.length);
     list.segments.forEach((seg) => {
       if (seg.mediaSequenceNumber <= this.sequenceNumber) return;
       if (this.segmentInfo) {
@@ -123,11 +141,14 @@ export class Video {
         );
       }
       console.log('download segment', seg.mediaSequenceNumber);
+      debug('download segment %d', seg.mediaSequenceNumber);
       this.downloadSegment(seg);
       this.sequenceNumber = seg.mediaSequenceNumber;
     });
     if (list.endlist && this.refreshInt) {
       console.log('ENDLIST');
+      debug('endlist');
+      debug('set status to idle');
       this.status = VideoStatus.IDLE;
       clearInterval(this.refreshInt);
     }
@@ -154,6 +175,11 @@ export class Video {
           );
         }
       } catch (e) {
+        debug(
+          'unable to download segment %d: %o',
+          segment.mediaSequenceNumber,
+          e
+        );
         if (this.segmentLog) {
           this.segmentLog.write(
             new Date().toISOString() +
@@ -174,9 +200,11 @@ export class Video {
         text
       ) as HLS.types.MediaPlaylist;
       console.log('playlist', list);
+      debug('playlis received %o', list);
       return list;
     } catch (e) {
       console.log('unable to handle playlist', e);
+      debug('unable to handle playlist %o', e);
       return Promise.reject(e);
     }
   }
@@ -204,6 +232,7 @@ export class Video {
         result = curr;
       }
       console.log('best list', result);
+      debug('best format %o', result);
       return result;
     });
     return best;
@@ -211,7 +240,7 @@ export class Video {
 
   private async getAccessToken(): Promise<AccessToken> {
     const uri = `https://api.twitch.tv/api/channels/${this.config.channel}/access_token?platform=_`;
-    console.log('url', uri);
+    debug('url for accesstoken %s', uri);
     // needs twitch client id
     // see https://github.com/streamlink/streamlink/issues/2680#issuecomment-557605851
     const resp = await fetch(uri, {
