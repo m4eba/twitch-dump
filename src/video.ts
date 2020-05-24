@@ -50,6 +50,10 @@ export class Video {
       })
       .then((list: HLS.types.Variant) => {
         this.initDownload(list);
+      })
+      .catch((e) => {
+        console.log('unable to initDownload', e);
+        this.status = VideoStatus.IDLE;
       });
   }
 
