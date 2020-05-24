@@ -1,8 +1,11 @@
 import TwitchClient, { HelixUser, AccessToken, Channel } from 'twitch';
 import WebSocket from 'ws';
+import Debug from 'debug';
 
 import { Config } from './config';
 import { WebSocketLogger } from './WebSocketLogger';
+
+const debug = Debug('events');
 
 export class Events extends WebSocketLogger {
   private client: TwitchClient;
@@ -29,14 +32,17 @@ export class Events extends WebSocketLogger {
     this.client.helix.users
       .getUserByName(this.config.channel)
       .then((user) => {
+        debug('user %o', user);
         this.user = user;
         return this.client.kraken.channels.getChannel(user!);
       })
       .then((channel) => {
+        debug('channel %o', channel);
         this.channel = channel;
         return this.client.getAccessToken();
       })
       .then((token) => {
+        debug('token %o', token);
         this.token = token;
         this.topics();
       });
@@ -50,6 +56,7 @@ export class Events extends WebSocketLogger {
       (obj.data.topic === `video-playback-by-id.${this.channel.id}` ||
         obj.data.topic === `broadcast-settings-update.${this.channel.id}`)
     ) {
+      debug('emit stream-up');
       this.emit('stream-up');
       /*const msg = JSON.parse(obj.data.message);
       if (msg.type === 'stream-up') {
@@ -59,6 +66,7 @@ export class Events extends WebSocketLogger {
   }
 
   public topics() {
+    debug('topics');
     if (this.user === null) throw new Error('user not defined');
     if (this.channel === null) throw new Error('channel not defined');
     if (this.ws === null) throw new Error('websocket not defined');
@@ -106,15 +114,14 @@ export class Events extends WebSocketLogger {
 
   protected ping(): void {
     if (!this.ws) return;
-    console.log('ping');
+    debug('ping');
     this.ws.send('{"type":"PING"}');
   }
   protected isPong(data: WebSocket.Data): boolean {
-    console.log(
-      'is pong ',
-      data.toString().trim() === '{ "type": "PONG" }',
-      data.toString()
-    );
-    return data.toString().trim() === '{ "type": "PONG" }';
+    if (data.toString().trim() === '{ "type": "PONG" }') {
+      debug('pong');
+      return true;
+    }
+    return false;
   }
 }
