@@ -51,6 +51,10 @@ export class Video {
     debug('start: status=initializing');
     this.status = VideoStatus.INITIALIZING;
     this.getAccessToken()
+      .catch((e) => {
+        console.log('unable to get access token', e);
+        process.exit(1);
+      })
       .then((token) => {
         debug('accesstoken %o', token);
         return this.playlist(token);
