@@ -31,15 +31,27 @@ export class Events extends WebSocketLogger {
   protected onOpen(): void {
     this.client.helix.users
       .getUserByName(this.config.channel)
+      .catch((e) => {
+        console.log('unable to get user', e);
+        process.exit(1);
+      })
       .then((user) => {
         debug('user %o', user);
         this.user = user;
         return this.client.kraken.channels.getChannel(user!);
       })
+      .catch((e) => {
+        console.log('unable to get channel', e);
+        process.exit(1);
+      })
       .then((channel) => {
         debug('channel %o', channel);
         this.channel = channel;
         return this.client.getAccessToken();
+      })
+      .catch((e) => {
+        console.log('unable to get accesstoken', e);
+        process.exit(1);
       })
       .then((token) => {
         debug('token %o', token);
