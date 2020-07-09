@@ -6,7 +6,7 @@
       "request": "launch",
       "name": "twitch-dump",
       "program": "${workspaceFolder}/build/dump.js",
-      "args": [],
+      "args": ["config.json"],
       "console": "integratedTerminal",
       "internalConsoleOptions": "neverOpen",
       "disableOptimisticBPs": true,
