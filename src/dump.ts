@@ -5,7 +5,13 @@ import TwitchClient from 'twitch';
 import { Events } from './events';
 import Video from './video';
 
-const config: Config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+if (process.argv.length !== 3) {
+  console.log('usage node build/dump.js <config file>');
+  process.exit(1);
+}
+
+const content = fs.readFileSync(process.argv[2], 'utf8');
+const config: Config = JSON.parse(content);
 const dump = new Set<Dump>();
 config.dump.forEach((d) => dump.add(d));
 config.dump = dump;
