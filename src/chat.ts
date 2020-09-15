@@ -3,7 +3,7 @@ import Debug from 'debug';
 import { Config } from './config';
 import { WebSocketLogger } from './WebSocketLogger';
 
-const debug = Debug('events');
+const debug = Debug('chats');
 
 export class Chat extends WebSocketLogger {
   constructor(config: Config) {
