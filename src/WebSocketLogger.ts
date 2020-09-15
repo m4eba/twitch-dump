@@ -1,8 +1,11 @@
 import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
+import Debug from 'debug';
 import { Config } from './config';
 import { EventEmitter } from 'events';
+
+const debug = Debug('WebSocketLogger');
 
 enum Status {
   CLOSE,
@@ -75,7 +78,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   private wsClose() {
     if (this.status === Status.CLOSE) return;
     if (this.fileIsOpening) return;
-    console.log('ws disconnected, reconnect in 5 seconds');
+    debug('ws disconnected, reconnect in 5 seconds');
     setTimeout(() => {
       this.open();
     }, 5 * 1000);
@@ -143,7 +146,7 @@ export abstract class WebSocketLogger extends EventEmitter {
   protected onMessage(data: WebSocket.Data): void {}
 
   private timeout() {
-    console.log('ping timeout?');
+    debug('ping timeout?');
     if (!this.ws) return;
     this.ws.close();
     //this.close();
