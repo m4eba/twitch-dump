@@ -1,6 +1,9 @@
 import WebSocket from 'ws';
+import Debug from 'debug';
 import { Config } from './config';
 import { WebSocketLogger } from './WebSocketLogger';
+
+const debug = Debug('events');
 
 export class Chat extends WebSocketLogger {
   constructor(config: Config) {
@@ -10,11 +13,16 @@ export class Chat extends WebSocketLogger {
 
   protected ping(): void {
     if (!this.ws) return;
+    debug('ping');
     this.ws.send('PING');
   }
 
   protected isPong(data: WebSocket.Data): boolean {
-    return data.toString().trim() === 'PONG :tmi.twitch.tv';
+    if (data.toString().trim() === 'PONG :tmi.twitch.tv') {
+      debug('pong');
+      return true;
+    }
+    return false;
   }
 
   protected onOpen() {
