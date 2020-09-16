@@ -39,6 +39,7 @@ export abstract class WebSocketLogger extends EventEmitter {
     this.ws.on('open', () => this.wsOpen());
     this.ws.on('message', (data: WebSocket.Data) => this.wsMessage(data));
     this.ws.on('close', () => this.wsClose());
+    this.ws.on('error', () => this.wsError());
   }
 
   public close() {
@@ -65,6 +66,8 @@ export abstract class WebSocketLogger extends EventEmitter {
 
     this.onOpen();
   }
+
+  private wsError() {}
 
   private wsMessage(data: WebSocket.Data) {
     if (this.isPong(data) && this.pingTimeout) {
