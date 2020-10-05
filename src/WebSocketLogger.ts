@@ -92,7 +92,7 @@ export abstract class WebSocketLogger extends EventEmitter {
 
   private writeData(data: WebSocket.Data) {
     if (this.folder === null) return;
-    this.buffer.push(data);
+
     if (this.out === null) {
       this.buffer.push(data);
       if (!this.fileIsOpening) this.openStream();
