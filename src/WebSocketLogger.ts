@@ -99,11 +99,15 @@ export abstract class WebSocketLogger extends EventEmitter {
       return;
     }
     if (this.currentDay !== new Date().getDate()) {
-      this.out.close();
       this.buffer.push(data);
-      if (!this.fileIsOpening) this.openStream();
+      if (!this.fileIsOpening) {
+        this.out.close();
+        this.out = null;
+        this.openStream();
+      }
       return;
     }
+
     if (this.buffer.length > 0) {
       for (let i = 0; i < this.buffer.length; ++i) {
         this.writeLine(this.buffer[i].toString().trim());
