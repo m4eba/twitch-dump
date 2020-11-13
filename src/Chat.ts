@@ -18,7 +18,7 @@ export class Chat extends WebSocketLogger {
   }
 
   protected isPong(data: WebSocket.Data): boolean {
-    if (data.toString().trim() === 'PONG :tmi.twitch.tv') {
+    if (data.toString().trim().substr(0, 4) === 'PONG') {
       debug('pong');
       return true;
     }
