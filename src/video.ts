@@ -170,8 +170,27 @@ export class Video {
         retries++;
         const resp = await fetch(segment.uri);
         if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
+        const clength = resp.headers.get('content-length');
+        let length = 0;
+        if (clength != null) {
+          try {
+            length = parseInt(clength);
+          } catch (e) {
+            throw new Error('unable to parse content-length ' + clength);
+          }
+        }
         const out = fs.createWriteStream(tmpName);
         await streamPipeline(resp.body, out);
+        const stat = await fs.promises.stat(tmpName);
+        debug(
+          '%dlength %d file size %d',
+          segment.mediaSequenceNumber,
+          length,
+          stat.size
+        );
+        if (length != stat.size) {
+          throw new Error('file size does not match');
+        }
         await fs.promises.rename(tmpName, name);
         if (this.segmentLog) {
           this.segmentLog.write(
@@ -204,11 +223,9 @@ export class Video {
       const list: HLS.types.MediaPlaylist = HLS.parse(
         text
       ) as HLS.types.MediaPlaylist;
-      console.log('playlist', list);
       debug('playlis received %o', list);
       return list;
     } catch (e) {
-      console.log('unable to handle playlist', e);
       debug('unable to handle playlist %o', e);
       return Promise.reject(e);
     }
@@ -236,7 +253,6 @@ export class Video {
       if (prev.bandwidth < curr.bandwidth) {
         result = curr;
       }
-      console.log('best list', result);
       debug('best format %o', result);
       return result;
     });
