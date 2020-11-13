@@ -2,7 +2,7 @@ import WebSocket from 'ws';
 import fs from 'fs';
 import path from 'path';
 import Debug from 'debug';
-import { Config } from './config';
+import { Config } from './Config';
 import { EventEmitter } from 'events';
 
 const debug = Debug('WebSocketLogger');

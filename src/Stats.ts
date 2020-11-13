@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import { Config } from './config';
+import { Config } from './Config';
 import { EventEmitter } from 'events';
 import TwitchClient, { HelixStream } from 'twitch';
 

@@ -5,7 +5,7 @@ import util from 'util';
 const streamPipeline = util.promisify(require('stream').pipeline);
 import fetch from 'node-fetch';
 import HLS from 'hls-parser';
-import { Config } from './config';
+import { Config } from './Config';
 import TwitchClient from 'twitch';
 import Debug from 'debug';
 

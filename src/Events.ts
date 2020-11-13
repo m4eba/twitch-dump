@@ -2,7 +2,7 @@ import TwitchClient, { HelixUser, AccessToken, Channel } from 'twitch';
 import WebSocket from 'ws';
 import Debug from 'debug';
 
-import { Config } from './config';
+import { Config } from './Config';
 import { WebSocketLogger } from './WebSocketLogger';
 
 const debug = Debug('events');

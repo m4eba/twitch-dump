@@ -1,9 +1,9 @@
 import fs from 'fs';
-import { Config, Dump } from './config';
-import { Chat } from './chat';
+import { Config, Dump } from './Config';
+import { Chat } from './Chat';
 import TwitchClient from 'twitch';
-import { Events } from './events';
-import Video from './video';
+import { Events } from './Events';
+import Video from './Video';
 
 if (process.argv.length !== 3) {
   console.log('usage node build/dump.js <config file>');
