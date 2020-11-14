@@ -167,6 +167,7 @@ export class Video {
     let retries = 0;
     while (retries < 5) {
       try {
+        debug('retry %d', retries);
         retries++;
         const resp = await fetch(segment.uri);
         if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
@@ -188,9 +189,15 @@ export class Video {
           length,
           stat.size
         );
+        if (this.segmentLog) {
+          this.segmentLog.write(
+            `${segment.mediaSequenceNumber} Size: ${length} ${stat.size}\n`
+          );
+        }
         if (length != stat.size) {
           throw new Error('file size does not match');
         }
+        debug('rename %s %s', tmpName, name);
         await fs.promises.rename(tmpName, name);
         if (this.segmentLog) {
           this.segmentLog.write(
