@@ -8,6 +8,7 @@ import HLS from 'hls-parser';
 import { Config } from './Config';
 import TwitchClient from 'twitch';
 import Debug from 'debug';
+import AbortController from 'abort-controller';
 
 const debug = Debug('video');
 
@@ -166,10 +167,14 @@ export class Video {
     const name = path.join(this.folder, segment.mediaSequenceNumber + '.ts');
     let retries = 0;
     while (retries < 5) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => {
+        controller.abort();
+      }, 10 * 60 * 1000);
       try {
         debug('retry %d', retries);
         retries++;
-        const resp = await fetch(segment.uri);
+        const resp = await fetch(segment.uri, { signal: controller.signal });
         if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
         const clength = resp.headers.get('content-length');
         let length = 0;
@@ -217,6 +222,8 @@ export class Video {
               ` ${segment.mediaSequenceNumber} err: ${e}\n`
           );
         }
+      } finally {
+        clearTimeout(timeout);
       }
     }
   }
