@@ -1,8 +1,7 @@
 import url from 'url';
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
-const streamPipeline = util.promisify(require('stream').pipeline);
+import * as utils from './utils';
 import fetch from 'node-fetch';
 import HLS from 'hls-parser';
 import { Config } from './Config';
@@ -180,15 +179,14 @@ export class Video {
           }
         }
         const out = fs.createWriteStream(tmpName);
-        await streamPipeline(resp.body, out);
-        const stat = await fs.promises.stat(tmpName);
+        const size = await utils.timeoutPipe(resp.body, out, 30 * 1000);
         debug(
-          '%dlength %d file size %d',
+          '%d - length %d file size %d',
           segment.mediaSequenceNumber,
           length,
-          stat.size
+          size
         );
-        if (length != stat.size) {
+        if (length != size) {
           throw new Error('file size does not match');
         }
         await fs.promises.rename(tmpName, name);
