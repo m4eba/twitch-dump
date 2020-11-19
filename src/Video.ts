@@ -15,6 +15,30 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function timeoutPipe(
+  ins: NodeJS.ReadableStream,
+  outs: NodeJS.WritableStream,
+  timeout: number
+) {
+  return new Promise((resolve, reject) => {
+    function timeoutFailed() {
+      reject('read timeout');
+    }
+    let timer = setTimeout(timeoutFailed, timeout);
+    ins.on('close', () => {
+      clearTimeout(timer);
+      outs.end();
+      resolve();
+    });
+
+    ins.on('data', (chunk: Buffer) => {
+      outs.write(chunk);
+      clearTimeout(timer);
+      timer = setTimeout(timeoutFailed, timeout);
+    });
+  });
+}
+
 interface AccessToken {
   token: string;
   sig: string;
@@ -165,9 +189,10 @@ export class Video {
     );
     const name = path.join(this.folder, segment.mediaSequenceNumber + '.ts');
     let retries = 0;
-    while (retries < 5) {
+    while (retries < 10) {
       try {
         retries++;
+        debug('retry %d', retries);
         const resp = await fetch(segment.uri);
         if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
         const clength = resp.headers.get('content-length');
@@ -180,7 +205,9 @@ export class Video {
           }
         }
         const out = fs.createWriteStream(tmpName);
-        await streamPipeline(resp.body, out);
+        //await streamPipeline(resp.body, out);
+        await timeoutPipe(resp.body, out, 15000);
+        await sleep(500);
         const stat = await fs.promises.stat(tmpName);
         debug(
           '%dlength %d file size %d',
@@ -223,7 +250,7 @@ export class Video {
       const list: HLS.types.MediaPlaylist = HLS.parse(
         text
       ) as HLS.types.MediaPlaylist;
-      debug('playlis received %o', list);
+      //debug('playlis received %o', list);
       return list;
     } catch (e) {
       debug('unable to handle playlist %o', e);
