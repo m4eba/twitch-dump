@@ -190,7 +190,7 @@ export class Video {
           length,
           size
         );
-        if (length != size) {
+        if (length > 0 && length != size) {
           throw new Error('file size does not match');
         }
         await fs.promises.rename(tmpName, name);
