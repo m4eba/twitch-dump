@@ -10,6 +10,7 @@ export interface Config {
   path: string;
   username: string;
   oauth: string;
+  oauthVideo: string;
   channel: string;
   clientId: string;
   secret: string;
