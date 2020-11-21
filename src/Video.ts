@@ -290,16 +290,11 @@ export class Video {
       ];
       let headers = {
         'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
-        //'Client-ID': this.config.clientId,
         Accept: 'application/vnd.twitchtv.v5+json',
-        Authorization: `OAuth ${this.config.oauthVideo}`,
       };
-      /*
-      if (this.config.oauth.length > 0) {
-        headers['Authorization'] = this.config.oauth
-          .replace(':', ' ')
-          .replace('oauth', 'OAuth');
-      }*/
+      if (this.config.oauthVideo.length > 0) {
+        headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
+      }
       debug('gql accesstoken, headers %o', headers);
       const resp = await fetch('https://gql.twitch.tv/gql', {
         method: 'POST',
