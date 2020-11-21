@@ -51,6 +51,10 @@ export abstract class WebSocketLogger extends EventEmitter {
   private wsOpen() {
     if (this.ws === null) throw new Error('websocket not defined');
 
+    if (this.pingInt != null) {
+      clearInterval(this.pingInt);
+      this.pingInt = null;
+    }
     this.pingInt = setInterval(() => {
       if (this.ws === null) {
         clearInterval(this.pingInt!);
