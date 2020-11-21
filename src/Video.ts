@@ -80,7 +80,7 @@ export class Video {
       'video',
       time.getFullYear().toString(),
       month,
-      time.toISOString()
+      time.toISOString().replace(/:/g, '-')
     );
     debug('folder %s', this.folder);
     await fs.promises.mkdir(this.folder, { recursive: true });
