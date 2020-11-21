@@ -5,7 +5,7 @@ import * as utils from './utils';
 import fetch from 'node-fetch';
 import HLS from 'hls-parser';
 import { Config } from './Config';
-import TwitchClient from 'twitch';
+import ApiClient from 'twitch';
 import Debug from 'debug';
 
 const debug = Debug('video');
@@ -28,7 +28,7 @@ export enum VideoStatus {
 
 export class Video {
   private config: Config;
-  private client: TwitchClient;
+  private client: ApiClient;
   private status: VideoStatus = VideoStatus.IDLE;
   private sequenceNumber = -1;
   private segmentInfo: fs.WriteStream | null = null;
@@ -37,7 +37,7 @@ export class Video {
   private refreshInt: NodeJS.Timeout | null = null;
   private downloading: boolean = false;
 
-  constructor(config: Config, client: TwitchClient) {
+  constructor(config: Config, client: ApiClient) {
     this.config = config;
     this.client = client;
   }

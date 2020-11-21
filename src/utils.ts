@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import TwitchClient, { HelixStream } from 'twitch';
+import { ApiClient, HelixStream } from 'twitch';
 import { createHash } from 'crypto';
 import fetch from 'node-fetch';
 import Debug from 'debug';
@@ -79,7 +79,7 @@ export async function m3u8Url(
 export async function waitForStream(
   timeout: number,
   channel: string,
-  client: TwitchClient
+  client: ApiClient
 ): Promise<HelixStream | null> {
   const start = new Date().getTime();
   for (;;) {

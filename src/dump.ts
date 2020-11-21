@@ -1,9 +1,10 @@
 import fs from 'fs';
 import { Config, Dump } from './Config';
 import { Chat } from './Chat';
-import TwitchClient from 'twitch';
+import { ApiClient } from 'twitch';
 import { Events } from './Events';
 import Video from './Video';
+import Vod from './Vod';
 
 if (process.argv.length !== 3) {
   console.log('usage node build/dump.js <config file>');
@@ -16,10 +17,7 @@ const dump = new Set<Dump>();
 config.dump.forEach((d) => dump.add(d));
 config.dump = dump;
 
-const client = TwitchClient.withClientCredentials(
-  config.clientId,
-  config.secret
-);
+const client = ApiClient.withClientCredentials(config.clientId, config.secret);
 
 if (config.dump.has(Dump.CHAT)) {
   const chat = new Chat(config);
@@ -41,5 +39,16 @@ if (config.dump.has(Dump.VIDEO)) {
   }
   events.on('stream-up', () => {
     video.start();
+  });
+}
+
+if (config.dump.has(Dump.VOD)) {
+  const vod = new Vod(config, client);
+  if (events === null) {
+    events = new Events(config, client, true);
+    events.open();
+  }
+  events.on('stream-up', () => {
+    vod.start();
   });
 }

@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { Config } from './Config';
 import { EventEmitter } from 'events';
-import TwitchClient, { HelixStream } from 'twitch';
+import { ApiClient, HelixStream } from 'twitch';
 
 export declare interface Stats {
   on(event: 'stream', listener: (id: string) => void): this;
@@ -10,7 +10,7 @@ export declare interface Stats {
 export class Stats extends EventEmitter {
   private config: Config;
   private intervalInt: NodeJS.Timer | null = null;
-  private client: TwitchClient;
+  private client: ApiClient;
   private path: string = '';
   private stream: HelixStream | null = null;
   private title: string = '';
@@ -21,7 +21,7 @@ export class Stats extends EventEmitter {
   constructor(config: Config) {
     super();
     this.config = config;
-    this.client = TwitchClient.withClientCredentials(
+    this.client = ApiClient.withClientCredentials(
       this.config.clientId,
       this.config.secret
     );

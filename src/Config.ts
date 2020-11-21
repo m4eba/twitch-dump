@@ -2,6 +2,7 @@ export enum Dump {
   CHAT = 'chat',
   EVENTS = 'events',
   VIDEO = 'video',
+  VOD = 'vod',
 }
 
 export interface Config {

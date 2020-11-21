@@ -1,4 +1,4 @@
-import TwitchClient, { HelixUser, AccessToken, Channel } from 'twitch';
+import { ApiClient, HelixUser, AccessToken, Channel } from 'twitch';
 import WebSocket from 'ws';
 import Debug from 'debug';
 
@@ -8,7 +8,7 @@ import { WebSocketLogger } from './WebSocketLogger';
 const debug = Debug('events');
 
 export class Events extends WebSocketLogger {
-  private client: TwitchClient;
+  private client: ApiClient;
   private user: HelixUser | null = null;
   private channel: Channel | null = null;
   private token: AccessToken | null = null;
@@ -16,7 +16,7 @@ export class Events extends WebSocketLogger {
 
   constructor(
     config: Config,
-    client: TwitchClient,
+    client: ApiClient,
     onlyVideoNotify: boolean = false
   ) {
     super(
