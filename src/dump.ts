@@ -17,8 +17,6 @@ const dump = new Set<Dump>();
 config.dump.forEach((d) => dump.add(d));
 config.dump = dump;
 
-console.log(config.filenamePaddingSize);
-
 const client = ApiClient.withClientCredentials(config.clientId, config.secret);
 
 if (config.dump.has(Dump.CHAT)) {
