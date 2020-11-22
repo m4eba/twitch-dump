@@ -191,12 +191,13 @@ export class Video {
           size
         );
         if (length > 0 && length != size) {
-          throw new Error('file size does not match');
+          throw new Error(`file size does not match ${size}/${length}`);
         }
         await fs.promises.rename(tmpName, name);
         if (this.segmentLog) {
           this.segmentLog.write(
-            new Date().toISOString() + ` ${segment.mediaSequenceNumber} ok\n`
+            new Date().toISOString() +
+              ` ${segment.mediaSequenceNumber} ${size}/${length} ok\n`
           );
         }
         return;
