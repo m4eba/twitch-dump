@@ -89,15 +89,15 @@ export async function waitForStream(
   const start = new Date().getTime();
   for (;;) {
     const t = new Date().getTime();
-    if (t - start > timeout * 1000) {
+    if (t - start > timeout) {
       debug('stream wait timeout!!!');
       return null;
     }
     debug('waitForStream');
     const stream = await client.helix.streams.getStreamByUserName(channel);
     if (stream === null) {
-      debug('stream is null, wait 3 seconds');
-      await sleep(3000);
+      debug('stream is null, wait 20 seconds');
+      await sleep(20 * 1000);
       continue;
     }
     debug('stream found %o', stream);

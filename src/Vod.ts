@@ -30,7 +30,7 @@ export class Vod {
     this.status = VodStatus.WAITFORSTREAM;
     debug('search for active stream');
     utils
-      .waitForStream(30 * 60, this.config.channel, this.client)
+      .waitForStream(6 * 60 * 1000, this.config.channel, this.client)
       .then((stream: HelixStream | null) => {
         this.status = VodStatus.IDLE;
         if (stream == null) {

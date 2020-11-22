@@ -213,7 +213,9 @@ export class VodDownloader {
           // @ts-ignore
           await parallelLimit(iter(), 4);
         } else {
-          zeroResultTime = new Date().getTime();
+          if (zeroResultTime == 0) {
+            zeroResultTime = new Date().getTime();
+          }
         }
       } catch (e) {
         if (this.errorLog) {
