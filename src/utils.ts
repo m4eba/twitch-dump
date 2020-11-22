@@ -27,6 +27,11 @@ export function timeoutPipe(
       outs.end();
       resolve(size);
     });
+    ins.on('end', () => {
+      clearTimeout(timer);
+      outs.end();
+      resolve(size);
+    });
 
     ins.on('data', (chunk: Buffer) => {
       size += chunk.length;
