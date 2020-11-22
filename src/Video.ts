@@ -166,7 +166,12 @@ export class Video {
       this.folder,
       segment.mediaSequenceNumber + '.ts.tmp'
     );
-    const name = path.join(this.folder, segment.mediaSequenceNumber + '.ts');
+    const name = path.join(
+      this.folder,
+      segment.mediaSequenceNumber
+        .toString()
+        .padStart(this.config.filenamePaddingSize, '0') + '.ts'
+    );
     let retries = 0;
     while (retries < 5) {
       try {

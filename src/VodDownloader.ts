@@ -169,7 +169,9 @@ export class VodDownloader {
           if (l.length == 0) continue;
           if (l[0] == '#') continue;
           if (this.completed.has(l)) continue;
-          if (await utils.fileExists(path.join(this.folder, l))) continue;
+          const filename = l.padStart(this.config.filenamePaddingSize, '0');
+          if (await utils.fileExists(path.join(this.folder, filename)))
+            continue;
           files.push(l);
         }
 
@@ -187,7 +189,11 @@ export class VodDownloader {
           function* iter(): Iterable<() => Promise<void>> {
             for (let i = 0; i < files.length; ++i) {
               const name = files[i];
-              const target = path.join(instance.folder, name);
+              const filename = name.padStart(
+                instance.config.filenamePaddingSize,
+                '0'
+              );
+              const target = path.join(instance.folder, filename);
               const fileUrl = baseUrl + name;
 
               yield ((n, u, t) => {

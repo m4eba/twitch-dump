@@ -15,4 +15,9 @@ export interface Config {
   clientId: string;
   secret: string;
   statInterval: number;
+  filenamePaddingSize: number;
 }
+
+export const defaultConfig: Partial<Config> = {
+  filenamePaddingSize: 5,
+};

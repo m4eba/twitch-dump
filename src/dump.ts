@@ -1,5 +1,5 @@
 import fs from 'fs';
-import { Config, Dump } from './Config';
+import { Config, Dump, defaultConfig } from './Config';
 import { Chat } from './Chat';
 import { ApiClient } from 'twitch';
 import { Events } from './Events';
@@ -12,10 +12,12 @@ if (process.argv.length !== 3) {
 }
 
 const content = fs.readFileSync(process.argv[2], 'utf8');
-const config: Config = JSON.parse(content);
+const config: Config = { ...defaultConfig, ...JSON.parse(content) };
 const dump = new Set<Dump>();
 config.dump.forEach((d) => dump.add(d));
 config.dump = dump;
+
+console.log(config.filenamePaddingSize);
 
 const client = ApiClient.withClientCredentials(config.clientId, config.secret);
 
