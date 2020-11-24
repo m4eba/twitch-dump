@@ -42,6 +42,7 @@ export class VodDownloader {
   private completed = new Set<String>();
   private log: fs.WriteStream | null = null;
   private errorLog: fs.WriteStream | null = null;
+  private playlistLog: fs.WriteStream | null = null;
 
   constructor(config: Config, client: ApiClient, stream: HelixStream) {
     this.config = config;
@@ -133,7 +134,10 @@ export class VodDownloader {
     this.log = fs.createWriteStream(this.folder + '.log', {
       flags: 'a',
     });
-    this.errorLog = fs.createWriteStream(this.errorLog + '-error.log', {
+    this.errorLog = fs.createWriteStream(this.folder + '-error.log', {
+      flags: 'a',
+    });
+    this.playlistLog = fs.createWriteStream(this.folder + '-playlist.txt', {
       flags: 'a',
     });
 
@@ -164,15 +168,21 @@ export class VodDownloader {
         const lines = m3u8.split('\n');
         let files: string[] = [];
 
+        let currentLength = '';
         for (let i = 0; i < lines.length; ++i) {
           const l = lines[i];
           if (l.length == 0) continue;
+          if (l.substr(0, 7) == '#EXTINF') {
+            currentLength = l;
+            continue;
+          }
           if (l[0] == '#') continue;
           if (this.completed.has(l)) continue;
           const filename = l.padStart(this.config.filenamePaddingSize, '0');
           if (await utils.fileExists(path.join(this.folder, filename)))
             continue;
           files.push(l);
+          this.playlistLog!.write(`${currentLength}\n${l}\n`);
         }
 
         if (files.length > 0) {
