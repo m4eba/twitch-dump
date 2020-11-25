@@ -170,13 +170,19 @@ export class VodDownloader {
 
         let currentLength = '';
         for (let i = 0; i < lines.length; ++i) {
-          const l = lines[i];
+          let l = lines[i];
           if (l.length == 0) continue;
           if (l.substr(0, 7) == '#EXTINF') {
             currentLength = l;
             continue;
           }
+
           if (l[0] == '#') continue;
+          if (l.endsWith('-unmuted.ts')) {
+            let completedName = l.replace('-unmuted.ts', '.ts');
+            if (this.completed.has(completedName)) continue;
+            l = l.replace('-unmuted.ts', '-muted.ts');
+          }
           if (this.completed.has(l)) continue;
           const filename = l.padStart(this.config.filenamePaddingSize, '0');
           if (await utils.fileExists(path.join(this.folder, filename)))
