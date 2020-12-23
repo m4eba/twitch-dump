@@ -32,7 +32,6 @@ export class Vod {
     utils
       .waitForStream(6 * 60 * 1000, this.config.channel, this.client)
       .then((stream: HelixStream | null) => {
-        this.status = VodStatus.IDLE;
         if (stream == null) {
           return;
         }
@@ -51,6 +50,9 @@ export class Vod {
           .finally(() => {
             this.downloads.delete(stream.id);
           });
+      })
+      .finally(() => {
+        this.status = VodStatus.IDLE;
       });
   }
 
