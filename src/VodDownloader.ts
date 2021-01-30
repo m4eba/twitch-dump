@@ -166,7 +166,7 @@ export class VodDownloader {
       try {
         const m3u8 = await this.m3u8Load();
         const lines = m3u8.split('\n');
-        let files: string[] = [];
+        const files: string[] = [];
 
         let currentLength = '';
         for (let i = 0; i < lines.length; ++i) {
@@ -179,7 +179,7 @@ export class VodDownloader {
 
           if (l[0] == '#') continue;
           if (l.endsWith('-unmuted.ts')) {
-            let completedName = l.replace('-unmuted.ts', '.ts');
+            const completedName = l.replace('-unmuted.ts', '.ts');
             if (this.completed.has(completedName)) continue;
             l = l.replace('-unmuted.ts', '-muted.ts');
           }

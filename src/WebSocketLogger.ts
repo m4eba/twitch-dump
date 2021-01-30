@@ -144,7 +144,7 @@ export abstract class WebSocketLogger extends EventEmitter {
       month
     );
     await fs.promises.mkdir(outd, { recursive: true });
-    let filename = `${year}${month}${day}.txt`;
+    const filename = `${year}${month}${day}.txt`;
     this.out = fs.createWriteStream(path.join(outd, filename), { flags: 'a' });
     this.fileIsOpening = false;
   }

@@ -119,8 +119,8 @@ export async function downloadFile(
   const tmpName = target + '.tmp';
   const baseName = path.basename(target);
   let length = 0;
-  let log: string[] = [];
-  let error: string[] = [];
+  const log: string[] = [];
+  const error: string[] = [];
 
   debug('download file %s', fileUrl);
   log.push(baseName + ' ' + fileUrl);
