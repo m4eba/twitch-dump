@@ -36,6 +36,7 @@ export class Video {
   private playlistLog: fs.WriteStream | null = null;
   private folder: string = '';
   private refreshInt: NodeJS.Timeout | null = null;
+  private lastDuration: number = 2;
   private downloading: boolean = false;
 
   constructor(config: Config, client: ApiClient) {
@@ -50,15 +51,7 @@ export class Video {
     }
     debug('start: status=initializing');
     this.status = VideoStatus.INITIALIZING;
-    this.getAccessToken()
-      .catch((e) => {
-        console.log('unable to get access token', e);
-        process.exit(1);
-      })
-      .then((token) => {
-        debug('accesstoken %o', token);
-        return this.playlist(token);
-      })
+    this.initPlaylist()
       .then((list: HLS.types.Variant) => {
         this.initDownload(list);
       })
@@ -67,6 +60,18 @@ export class Video {
         console.log('unable to initDownload', e);
         this.status = VideoStatus.IDLE;
       });
+  }
+
+  private async initPlaylist() {
+    let token: AccessToken | null = null;
+    try {
+      token = await this.getAccessToken();
+    } catch (e) {
+      console.log('unable to get access token', e);
+      process.exit(1);
+    }
+    debug('accesstoken %o', token);
+    return await this.playlist(token);
   }
 
   private async initDownload(variant: HLS.types.Variant) {
@@ -106,16 +111,24 @@ export class Video {
       this.status = VideoStatus.DOWNLOADING;
       this.handleList(list);
       this.getStream();
-      this.refreshInt = setInterval(() => {
-        debug('refresh interval');
-        this.list(variant).then(this.handleList.bind(this));
-      }, list.segments[0].duration * 1000);
+      this.initRefreshInterval(variant);
     } catch (e) {
       debug('unable to initialize download %o', e);
       console.log('unable to initialize download', e);
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
     }
+  }
+
+  private initRefreshInterval(variant: HLS.types.Variant) {
+    if (this.refreshInt != null) {
+      clearInterval(this.refreshInt);
+      this.refreshInt = null;
+    }
+    this.refreshInt = setInterval(() => {
+      debug('refresh interval');
+      this.list(variant).then(this.handleList.bind(this));
+    }, this.lastDuration * 1000);
   }
 
   private async getStream() {
@@ -152,12 +165,16 @@ export class Video {
       this.downloadSegment(seg);
       this.sequenceNumber = seg.mediaSequenceNumber;
     });
+    if (list.segments.length > 0) {
+      this.lastDuration = list.segments[0].duration;
+    }
     if (list.endlist && this.refreshInt) {
       console.log('ENDLIST');
       debug('endlist');
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
       clearInterval(this.refreshInt);
+      this.refreshInt = null;
     }
   }
 
@@ -227,7 +244,14 @@ export class Video {
   ): Promise<HLS.types.MediaPlaylist> {
     try {
       const resp = await fetch(variant.uri);
-      const text = await resp.text();
+      let text = await resp.text();
+      if (text.length === 0) {
+        debug('playlist empty, refresh token+url');
+        const newVariant = await this.initPlaylist();
+        this.initRefreshInterval(newVariant);
+        const resp = await fetch(newVariant.uri);
+        text = await resp.text();
+      }
       if (this.playlistLog) {
         this.playlistLog.write(`### ${new Date().toUTCString()}\n`);
         this.playlistLog.write(text);
@@ -236,7 +260,7 @@ export class Video {
       const list: HLS.types.MediaPlaylist = HLS.parse(
         text
       ) as HLS.types.MediaPlaylist;
-      debug('playlis received %d', list.segments.length);
+      debug('playlist received %d', list.segments.length);
       return list;
     } catch (e) {
       debug('unable to handle playlist %o', e);
