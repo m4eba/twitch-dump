@@ -1,4 +1,4 @@
-Saves chat, live stream video segments and pubsub events from a twitch channel to disk.
+Saves chat, live stream video segments, vod segments and pubsub events from a twitch channel to disk.
 
 #### Install
 
@@ -22,7 +22,7 @@ With a config.json file like:
 ```json
 {
   "channel": "<twitch channel to save>",
-  "dump": ["chat", "event", "video"],
+  "dump": ["chat", "event", "video", "vod"],
   "path": "<outputpath>",
   "username": "<twitch username>",
   "oauth": "oauth:......",
