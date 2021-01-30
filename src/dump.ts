@@ -40,6 +40,7 @@ if (config.dump.has(Dump.VIDEO)) {
   events.on('stream-up', () => {
     video.start();
   });
+  video.start();
 }
 
 if (config.dump.has(Dump.VOD)) {
@@ -51,4 +52,5 @@ if (config.dump.has(Dump.VOD)) {
   events.on('stream-up', () => {
     vod.start();
   });
+  vod.start();
 }
