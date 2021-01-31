@@ -5,7 +5,7 @@ import * as utils from './utils';
 import fetch from 'node-fetch';
 import HLS from 'hls-parser';
 import { Config } from './Config';
-import { ApiClient, HelixStream } from 'twitch';
+import ApiClient from 'twitch';
 import Debug from 'debug';
 
 const debug = Debug('video');
@@ -28,8 +28,6 @@ export enum VideoStatus {
 
 export class Video {
   private config: Config;
-  private stream: HelixStream | null = null;
-  private isContinue: boolean = false;
   private client: ApiClient;
   private status: VideoStatus = VideoStatus.IDLE;
   private sequenceNumber = -1;
@@ -46,37 +44,14 @@ export class Video {
     this.client = client;
   }
 
-  private pathForDate(time: Date) {
-    let month = (time.getMonth() + 1).toString();
-    if (month.length === 1) month = '0' + month;
-
-    return path.join(
-      this.config.path,
-      'video',
-      time.getFullYear().toString(),
-      month
-    );
-  }
   public start() {
     if (this.status != VideoStatus.IDLE) {
       debug('status not idle');
       return;
     }
-    const time = new Date();
-
-    this.sequenceNumber = -1;
-    this.folder = path.join(
-      this.pathForDate(time),
-      time.toISOString().replace(/:/g, '-')
-    );
-    debug('folder %s', this.folder);
-
     debug('start: status=initializing');
     this.status = VideoStatus.INITIALIZING;
-    this.testForContinue()
-      .then(() => {
-        return this.initPlaylist();
-      })
+    this.initPlaylist()
       .then((list: HLS.types.Variant) => {
         this.initDownload(list);
       })
@@ -85,59 +60,6 @@ export class Video {
         console.log('unable to initDownload', e);
         this.status = VideoStatus.IDLE;
       });
-  }
-
-  private async testForContinue() {
-    this.stream = await this.client.helix.streams.getStreamByUserName(
-      this.config.channel
-    );
-    if (this.stream == null) return;
-    // find latest stream
-    let time = new Date();
-    const path1 = this.pathForDate(time);
-    time.setDate(time.getDate() - 1);
-    const path2 = this.pathForDate(time);
-
-    const searchStream = async (folder: string): Promise<string> => {
-      try {
-        let files = await fs.promises.readdir(folder, {
-          withFileTypes: true,
-        });
-        files = files.filter((v: fs.Dirent) => {
-          return v.isDirectory();
-        });
-        if (files.length == 0) return '';
-        files = files.sort((a: fs.Dirent, b: fs.Dirent) => {
-          if (a.name > b.name) return -1;
-          if (b.name > a.name) return 1;
-          return 0;
-        });
-
-        const name = path.join(folder, files[0].name + '-stream.json');
-        const json = JSON.parse(
-          await fs.promises.readFile(name, { encoding: 'utf8' })
-        ) as { id: string };
-
-        if (json.id == this.stream!.id) {
-          return path.join(folder, files[0].name);
-        }
-      } catch (e) {
-        debug('unable to find stream %s', e.toString());
-      }
-      return '';
-    };
-
-    let result = await searchStream(path1);
-    if (result.length == 0) {
-      result = await searchStream(path2);
-    }
-    if (result.length > 0) {
-      this.isContinue = true;
-      this.folder = result;
-      debug('continue in folder %s', result);
-    } else {
-      this.saveStreamData();
-    }
   }
 
   private async initPlaylist() {
@@ -154,7 +76,19 @@ export class Video {
 
   private async initDownload(variant: HLS.types.Variant) {
     debug('initDownload');
+    const time = new Date();
+    let month = (time.getMonth() + 1).toString();
+    if (month.length === 1) month = '0' + month;
 
+    this.sequenceNumber = -1;
+    this.folder = path.join(
+      this.config.path,
+      'video',
+      time.getFullYear().toString(),
+      month,
+      time.toISOString().replace(/:/g, '-')
+    );
+    debug('folder %s', this.folder);
     await fs.promises.mkdir(this.folder, { recursive: true });
     this.segmentInfo = fs.createWriteStream(this.folder + '.txt', {
       flags: 'a',
@@ -176,9 +110,7 @@ export class Video {
       debug('set status to downloading');
       this.status = VideoStatus.DOWNLOADING;
       this.handleList(list);
-      if (this.stream == null) {
-        this.getStream();
-      }
+      this.getStream();
       this.initRefreshInterval(variant);
     } catch (e) {
       debug('unable to initialize download %o', e);
@@ -202,29 +134,22 @@ export class Video {
   private async getStream() {
     for (;;) {
       debug('getStream');
-      this.stream = await this.client.helix.streams.getStreamByUserName(
+      const stream = await this.client.helix.streams.getStreamByUserName(
         this.config.channel
       );
-      if (this.stream === null) {
+      if (stream === null) {
         debug('stream is null, wait 3 seconds');
         await sleep(3000);
         continue;
       }
-      debug('stream found %o', this.stream);
-      await this.saveStreamData();
+      debug('stream found %o', stream);
+      await fs.promises.writeFile(
+        this.folder + '-stream.json',
+        JSON.stringify(stream, null, '  ')
+      );
       break;
     }
   }
-
-  private async saveStreamData() {
-    if (this.stream == null) return;
-    await fs.promises.writeFile(
-      this.folder + '-stream.json',
-      // @ts-ignore
-      JSON.stringify(this.stream._data, null, '  ')
-    );
-  }
-
   private handleList(list: HLS.types.MediaPlaylist) {
     debug('handleList, size %d', list.segments.length);
     list.segments.forEach((seg) => {
