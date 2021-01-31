@@ -145,8 +145,26 @@ export class Video {
       debug('stream found %o', stream);
       await fs.promises.writeFile(
         this.folder + '-stream.json',
-        JSON.stringify(stream, null, '  ')
+        // @ts-ignore
+        JSON.stringify(stream._data, null, '  ')
       );
+      // check stream api one more time after 10 minutes
+      // the api is cached in case of a sudden disconnect
+      // this first call will have the stream id of the
+      // last stream, so just dump everything and figure
+      // it out later
+      setTimeout(async () => {
+        const stream = await this.client.helix.streams.getStreamByUserName(
+          this.config.channel
+        );
+        if (stream !== null) {
+          await fs.promises.writeFile(
+            this.folder + '-stream-10.json',
+            // @ts-ignore
+            JSON.stringify(stream._data, null, '  ')
+          );
+        }
+      }, 1000 * 60 * 10);
       break;
     }
   }
