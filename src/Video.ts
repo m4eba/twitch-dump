@@ -93,7 +93,7 @@ export class Video {
     );
     if (this.stream == null) return;
     // find latest stream
-    const time = new Date();
+    let time = new Date();
     const path1 = this.pathForDate(time);
     time.setDate(time.getDate() - 1);
     const path2 = this.pathForDate(time);
