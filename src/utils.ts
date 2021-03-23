@@ -57,7 +57,7 @@ export async function fileExists(name: string): Promise<boolean> {
 const hosts = [
   'dqrpb9wgowsf5.cloudfront.net',
   'd2e2de1etea730.cloudfront.net',
-  'd2vjef5jvl6bfs.cloudfron.net',
+  'd2vjef5jvl6bfs.cloudfront.net',
   'vod-secure.twitch.tv',
 ];
 
