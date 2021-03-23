@@ -4,6 +4,7 @@ import { ApiClient, HelixStream } from 'twitch';
 import { createHash } from 'crypto';
 import fetch from 'node-fetch';
 import Debug from 'debug';
+import AbortController from 'abort-controller';
 
 const debug = Debug('utils');
 
@@ -12,6 +13,7 @@ export function sleep(ms: number) {
 }
 
 export function timeoutPipe(
+  controller: AbortController,
   ins: NodeJS.ReadableStream,
   outs: NodeJS.WritableStream,
   timeout: number
@@ -19,6 +21,7 @@ export function timeoutPipe(
   return new Promise((resolve, reject) => {
     let size = 0;
     function timeoutFailed() {
+      controller.abort();
       reject('read timeout');
     }
     let timer = setTimeout(timeoutFailed, timeout);
@@ -131,7 +134,10 @@ export async function downloadFile(
     try {
       retries++;
 
-      const resp = await fetch(fileUrl);
+      const controller = new AbortController();
+      const resp = await fetch(fileUrl, {
+        signal: controller.signal,
+      });
       if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
       const clength = resp.headers.get('content-length');
 
@@ -144,7 +150,8 @@ export async function downloadFile(
       }
 
       const out = fs.createWriteStream(tmpName);
-      const size = await timeoutPipe(resp.body, out, timeout);
+
+      const size = await timeoutPipe(controller, resp.body, out, timeout);
       if (length != size) {
         throw new Error('file size does not match');
       }

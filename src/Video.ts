@@ -7,6 +7,7 @@ import HLS from 'hls-parser';
 import { Config } from './Config';
 import ApiClient from 'twitch';
 import Debug from 'debug';
+import AbortController from 'abort-controller';
 
 const debug = Debug('video');
 
@@ -208,22 +209,59 @@ export class Video {
         .padStart(this.config.filenamePaddingSize, '0') + '.ts'
     );
     let retries = 0;
-    while (retries < 5) {
+    while (retries < 15) {
       try {
         retries++;
-        const resp = await fetch(segment.uri);
+        let stat = null;
+        try {
+          // test if file already exists
+          stat = await fs.promises.stat(tmpName);
+        } catch (e) {
+          // do nothing
+        }
+
+        let headers = {};
+        let flags = 'w';
+        if (stat != null) {
+          flags = 'a';
+          headers = {
+            Range: `bytes=${stat.size}-`,
+          };
+        }
+        const controller = new AbortController();
+        const resp = await fetch(segment.uri, {
+          headers,
+          signal: controller.signal,
+        });
         if (!resp.ok) throw new Error(`unexpected response ${resp.statusText}`);
         const clength = resp.headers.get('content-length');
         let length = 0;
+        let totalLength = 0;
+        if (resp.status == 206) {
+          debug('range header', resp.headers.get('content-range'));
+        }
         if (clength != null) {
           try {
             length = parseInt(clength);
+            totalLength = length;
+            if (stat != null) {
+              totalLength = length + stat.size;
+            }
           } catch (e) {
             throw new Error('unable to parse content-length ' + clength);
           }
         }
-        const out = fs.createWriteStream(tmpName);
-        const size = await utils.timeoutPipe(resp.body, out, 30 * 1000);
+        const out = fs.createWriteStream(tmpName, {
+          flags,
+        });
+
+        const size = await utils.timeoutPipe(
+          controller,
+          resp.body,
+          out,
+          30 * 1000
+        );
+
         debug(
           '%d - length %d file size %d',
           segment.mediaSequenceNumber,
@@ -234,10 +272,14 @@ export class Video {
           throw new Error(`file size does not match ${size}/${length}`);
         }
         await fs.promises.rename(tmpName, name);
+        let totalSize = size;
+        if (stat != null) {
+          totalSize += stat.size;
+        }
         if (this.segmentLog) {
           this.segmentLog.write(
             new Date().toISOString() +
-              ` ${segment.mediaSequenceNumber} ${size}/${length} ok\n`
+              ` ${segment.mediaSequenceNumber} ${totalSize}/${totalLength} ok\n`
           );
         }
         return;
