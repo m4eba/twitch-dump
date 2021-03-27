@@ -222,8 +222,9 @@ export class Video {
 
         let headers = {};
         let flags = 'w';
+
         if (stat != null) {
-          flags = 'a';
+          debug(`${segment.mediaSequenceNumber}: resume at`, stat.size);
           headers = {
             Range: `bytes=${stat.size}-`,
           };
@@ -237,14 +238,16 @@ export class Video {
         const clength = resp.headers.get('content-length');
         let length = 0;
         let totalLength = 0;
-        if (resp.status == 206) {
-          debug('range header', resp.headers.get('content-range'));
+        const range = resp.headers.get('content-range');
+        if (range != null) {
+          flags = 'a';
+          debug(`${segment.mediaSequenceNumber}: range header`, range);
         }
         if (clength != null) {
           try {
             length = parseInt(clength);
             totalLength = length;
-            if (stat != null) {
+            if (stat != null && range != null) {
               totalLength = length + stat.size;
             }
           } catch (e) {
