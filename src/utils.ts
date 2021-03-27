@@ -13,7 +13,6 @@ export function sleep(ms: number) {
 }
 
 export function timeoutPipe(
-  controller: AbortController,
   ins: NodeJS.ReadableStream,
   outs: NodeJS.WritableStream,
   timeout: number
@@ -21,7 +20,6 @@ export function timeoutPipe(
   return new Promise((resolve, reject) => {
     let size = 0;
     function timeoutFailed() {
-      controller.abort();
       reject('read timeout');
     }
     let timer = setTimeout(timeoutFailed, timeout);
@@ -131,10 +129,11 @@ export async function downloadFile(
   while (retries < 5) {
     debug('download retry %d', retries);
     log.push(baseName + ' ' + retries.toString());
+    let controller: AbortController | null = null;
     try {
       retries++;
 
-      const controller = new AbortController();
+      controller = new AbortController();
       const resp = await fetch(fileUrl, {
         signal: controller.signal,
       });
@@ -151,7 +150,7 @@ export async function downloadFile(
 
       const out = fs.createWriteStream(tmpName);
 
-      const size = await timeoutPipe(controller, resp.body, out, timeout);
+      const size = await timeoutPipe(resp.body, out, timeout);
       if (length != size) {
         throw new Error('file size does not match');
       }
@@ -165,6 +164,7 @@ export async function downloadFile(
         error,
       };
     } catch (e) {
+      if (controller != null) controller.abort();
       debug('download error', e);
       error.push(`${baseName} ${length} ${e.toString()}\n`);
     }

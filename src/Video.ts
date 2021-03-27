@@ -209,6 +209,7 @@ export class Video {
         .padStart(this.config.filenamePaddingSize, '0') + '.ts'
     );
     let retries = 0;
+    let controller: AbortController | null = null;
     while (retries < 15) {
       try {
         retries++;
@@ -229,7 +230,7 @@ export class Video {
             Range: `bytes=${stat.size}-`,
           };
         }
-        const controller = new AbortController();
+        controller = new AbortController();
         const resp = await fetch(segment.uri, {
           headers,
           signal: controller.signal,
@@ -258,12 +259,7 @@ export class Video {
           flags,
         });
 
-        const size = await utils.timeoutPipe(
-          controller,
-          resp.body,
-          out,
-          30 * 1000
-        );
+        const size = await utils.timeoutPipe(resp.body, out, 30 * 1000);
 
         debug(
           '%d - length %d file size %d',
@@ -287,6 +283,7 @@ export class Video {
         }
         return;
       } catch (e) {
+        if (controller != null) controller.abort();
         debug(
           'unable to download segment %d: %o',
           segment.mediaSequenceNumber,
