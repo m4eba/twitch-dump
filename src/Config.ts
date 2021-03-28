@@ -16,8 +16,10 @@ export interface Config {
   secret: string;
   statInterval: number;
   filenamePaddingSize: number;
+  refreshDownloadsCountThreshold: number;
 }
 
 export const defaultConfig: Partial<Config> = {
   filenamePaddingSize: 5,
+  refreshDownloadsCountThreshold: 3,
 };

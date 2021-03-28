@@ -39,6 +39,8 @@ export class Video {
   private refreshInt: NodeJS.Timeout | null = null;
   private lastDuration: number = 2;
   private downloading: boolean = false;
+  private downloadsRunning: number = 0;
+  private listDownloadCount: number = 0;
 
   constructor(config: Config, client: ApiClient) {
     this.config = config;
@@ -181,6 +183,7 @@ export class Video {
       }
       console.log('download segment', seg.mediaSequenceNumber);
       debug('download segment %d', seg.mediaSequenceNumber);
+      this.listDownloadCount++;
       this.downloadSegment(seg);
       this.sequenceNumber = seg.mediaSequenceNumber;
     });
@@ -212,6 +215,7 @@ export class Video {
     let controller: AbortController | null = null;
     while (retries < 15) {
       try {
+        this.downloadsRunning++;
         retries++;
         let stat = null;
         try {
@@ -295,22 +299,38 @@ export class Video {
               ` ${segment.mediaSequenceNumber} err: ${e}\n`
           );
         }
+      } finally {
+        this.downloadsRunning--;
       }
     }
+  }
+
+  private async refreshTokenUrl(): Promise<string> {
+    const newVariant = await this.initPlaylist();
+    this.initRefreshInterval(newVariant);
+    const resp = await fetch(newVariant.uri);
+    const text = await resp.text();
+    return text;
   }
 
   private async list(
     variant: HLS.types.Variant
   ): Promise<HLS.types.MediaPlaylist> {
     try {
-      const resp = await fetch(variant.uri);
-      let text = await resp.text();
+      let text = '';
+      if (
+        this.listDownloadCount > 10 &&
+        this.downloadsRunning >= this.config.refreshDownloadsCountThreshold
+      ) {
+        debug('too many donwloads refresh token and playlist');
+        text = await this.refreshTokenUrl();
+      } else {
+        const resp = await fetch(variant.uri);
+        text = await resp.text();
+      }
       if (text.length === 0) {
         debug('playlist empty, refresh token+url');
-        const newVariant = await this.initPlaylist();
-        this.initRefreshInterval(newVariant);
-        const resp = await fetch(newVariant.uri);
-        text = await resp.text();
+        text = await this.refreshTokenUrl();
       }
       if (this.playlistLog) {
         this.playlistLog.write(`### ${new Date().toUTCString()}\n`);
@@ -329,6 +349,8 @@ export class Video {
   }
 
   private async playlist(token: AccessToken): Promise<HLS.types.Variant> {
+    // resest
+    this.listDownloadCount = 0;
     const uri = new url.URL(
       `https://usher.ttvnw.net/api/channel/hls/${this.config.channel}.m3u8`
     );
