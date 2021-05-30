@@ -47,7 +47,7 @@
     "node-fetch": "^2.6.1",
     "request-promise-native": "^1.0.8",
     "twitch": "^4.4.6",
-    "ws": "^7.2.5"
+    "ws": "^7.4.6"
   },
   "husky": {
     "hooks": {
