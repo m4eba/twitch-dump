@@ -20,6 +20,11 @@ enum VodDownloaderStatus {
   ERROR,
 }
 
+interface AccessToken {
+  signature: string;
+  value: string;
+}
+
 interface KrakenVideo {
   _id: string;
   broadcast_id: number;
@@ -150,6 +155,10 @@ export class VodDownloader {
       await utils.sleep(60 * 1000);
     }
     if (this.m3u8Url.length == 0) {
+      debug('unable to get m3u8 direct link, try other method');
+      this.m3u8Url = await this.getVodUrl();
+    }
+    if (this.m3u8Url.length == 0) {
       debug('unable to get m3u8 url');
       this.error('unable to get m3u8 url');
       return;
@@ -248,6 +257,92 @@ export class VodDownloader {
       this.status = VodDownloaderStatus.WAIT_FOR_UPDATE;
       await utils.sleep(this.updateWaitTime);
       this.status = VodDownloaderStatus.DOWNLOADING;
+    }
+  }
+
+  private async getVodUrl(): Promise<string> {
+    const token = await this.getAccessToken();
+    if (token === null || this.vod === null) {
+      return '';
+    }
+    try {
+      const queryObj = {
+        allow_source: true,
+        p: 9544124,
+        supported_codecs: 'avc1',
+        token: token.value,
+        sig: token.signature,
+        cdm: 'wv',
+        player_version: '1.4.0',
+      };
+      const query = Object.entries(queryObj)
+        .map(([key, val]) => `${key}=${encodeURIComponent(val)}`)
+        .join('&');
+      const resp = await fetch(
+        `https://usher.ttvnw.net/vod/${this.vod.id}.m3u8?${query}`,
+        {
+          method: 'GET',
+        }
+      );
+      const result = await resp.text();
+      const lines = result.split('\n');
+      for (let i = 0; i < lines.length; ++i) {
+        const l = lines[i];
+        if (l.length === 0) continue;
+        if (l[0] === '#') continue;
+        debug('url %s', l);
+        return l;
+      }
+    } catch (e) {
+      debug('unable to request vod url');
+    }
+    return '';
+  }
+
+  private async getAccessToken(): Promise<AccessToken | null> {
+    if (this.vod === null) {
+      return null;
+    }
+    // access token via graphql
+    try {
+      const req = [
+        {
+          operationName: 'PlaybackAccessToken_Template',
+          query:
+            'query PlaybackAccessToken_Template($login: String!, $isLive: Boolean!, $vodID: ID!, $isVod: Boolean!, $playerType: String!) {  streamPlaybackAccessToken(channelName: $login, params: {platform: "web", playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isLive) {    value    signature    __typename  }  videoPlaybackAccessToken(id: $vodID, params: {platform: "web", playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isVod) {    value    signature    __typename  }}',
+          variables: {
+            isLive: false,
+            isVod: true,
+            login: '',
+            playerType: 'site',
+            vodID: this.vod.id,
+          },
+        },
+      ];
+      const headers = {
+        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+        Accept: 'application/vnd.twitchtv.v5+json',
+      };
+      if (this.config.oauthVideo.length > 0) {
+        headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
+      }
+      debug('gql vod accesstoken, headers %o', headers);
+      const resp = await fetch('https://gql.twitch.tv/gql', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(req),
+      });
+      const result = await resp.json();
+
+      const data: AccessToken = {
+        signature: result[0].data.videoPlaybackAccessToken.signature,
+        value: result[0].data.videoPlaybackAccessToken.value,
+      };
+      debug('token %o', data);
+      return data;
+    } catch (e) {
+      debug('unable to get accesstoken with graphql');
+      return null;
     }
   }
 
