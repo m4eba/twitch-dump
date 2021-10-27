@@ -71,7 +71,7 @@ export class Video {
       token = await this.getAccessToken();
     } catch (e) {
       console.log('unable to get access token', e);
-      process.exit(1);
+      throw e;
     }
     debug('accesstoken %o', token);
     return await this.playlist(token);
@@ -380,41 +380,41 @@ export class Video {
 
   private async getAccessToken(): Promise<AccessToken> {
     // access token via graphql
-    try {
-      const req = [
-        {
-          operationName: 'PlaybackAccessToken',
-          variables: {
-            isLive: true,
-            isVod: false,
-            login: this.config.channel,
-            playerType: 'site',
-            vodID: '',
-          },
-          extensions: {
-            persistedQuery: {
-              version: 1,
-              sha256Hash:
-                '0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712',
-            },
+    const req = [
+      {
+        operationName: 'PlaybackAccessToken',
+        variables: {
+          isLive: true,
+          isVod: false,
+          login: this.config.channel,
+          playerType: 'site',
+          vodID: '',
+        },
+        extensions: {
+          persistedQuery: {
+            version: 1,
+            sha256Hash:
+              '0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712',
           },
         },
-      ];
-      const headers = {
-        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
-        Accept: 'application/vnd.twitchtv.v5+json',
-      };
-      if (this.config.oauthVideo.length > 0) {
-        headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
-      }
-      debug('gql accesstoken, headers %o', headers);
-      const resp = await fetch('https://gql.twitch.tv/gql', {
-        method: 'POST',
-        headers,
-        body: JSON.stringify(req),
-      });
-      const result = await resp.json();
+      },
+    ];
+    const headers = {
+      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      Accept: 'application/vnd.twitchtv.v5+json',
+    };
+    if (this.config.oauthVideo.length > 0) {
+      headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
+    }
+    debug('gql accesstoken, headers %o', headers);
+    const resp = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(req),
+    });
+    const result = await resp.json();
 
+    try {
       const data: AccessToken = {
         sig: result[0].data.streamPlaybackAccessToken.signature,
         token: result[0].data.streamPlaybackAccessToken.value,
@@ -422,25 +422,9 @@ export class Video {
       };
       return data;
     } catch (e) {
-      debug('unable to get accesstoken with graphql');
-      const token = await this.getAccessTokenOld();
-      return token;
+      console.log('unable to create access token', result);
+      throw e;
     }
-  }
-
-  private async getAccessTokenOld(): Promise<AccessToken> {
-    const uri = `https://api.twitch.tv/api/channels/${this.config.channel}/access_token?platform=_`;
-    debug('url for accesstoken %s', uri);
-    // needs twitch client id
-    // see https://github.com/streamlink/streamlink/issues/2680#issuecomment-557605851
-    const resp = await fetch(uri, {
-      headers: {
-        'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
-        Accept: 'application/vnd.twitchtv.v5+json',
-      },
-    });
-    const data: AccessToken = await resp.json();
-    return data;
   }
 }
 
