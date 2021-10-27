@@ -5,6 +5,7 @@ import { ApiClient } from 'twitch';
 import { Events } from './Events';
 import Video from './Video';
 import Vod from './Vod';
+import * as db from './db';
 
 if (process.argv.length !== 3) {
   console.log('usage node build/dump.js <config file>');
@@ -17,40 +18,47 @@ const dump = new Set<Dump>();
 config.dump.forEach((d) => dump.add(d));
 config.dump = dump;
 
-const client = ApiClient.withClientCredentials(config.clientId, config.secret);
+(async () => {
+  await db.init(config);
 
-if (config.dump.has(Dump.CHAT)) {
-  const chat = new Chat(config);
-  chat.open();
-}
+  const client = ApiClient.withClientCredentials(
+    config.clientId,
+    config.secret
+  );
 
-let events: Events | null = null;
+  if (config.dump.has(Dump.CHAT)) {
+    const chat = new Chat(config);
+    chat.open();
+  }
 
-if (config.dump.has(Dump.EVENTS)) {
-  events = new Events(config, client);
-  events.open();
-}
+  let events: Events | null = null;
 
-if (config.dump.has(Dump.VIDEO)) {
-  const video = new Video(config, client);
-  if (events === null) {
-    events = new Events(config, client, true);
+  if (config.dump.has(Dump.EVENTS)) {
+    events = new Events(config, client);
     events.open();
   }
-  events.on('stream-up', () => {
+
+  if (config.dump.has(Dump.VIDEO)) {
+    const video = new Video(config, client);
+    if (events === null) {
+      events = new Events(config, client, true);
+      events.open();
+    }
+    events.on('stream-up', () => {
+      video.start();
+    });
     video.start();
-  });
-  video.start();
-}
-
-if (config.dump.has(Dump.VOD)) {
-  const vod = new Vod(config, client);
-  if (events === null) {
-    events = new Events(config, client, true);
-    events.open();
   }
-  events.on('stream-up', () => {
+
+  if (config.dump.has(Dump.VOD)) {
+    const vod = new Vod(config, client);
+    if (events === null) {
+      events = new Events(config, client, true);
+      events.open();
+    }
+    events.on('stream-up', () => {
+      vod.start();
+    });
     vod.start();
-  });
-  vod.start();
-}
+  }
+})();

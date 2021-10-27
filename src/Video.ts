@@ -8,6 +8,7 @@ import { Config } from './Config';
 import ApiClient from 'twitch';
 import Debug from 'debug';
 import AbortController from 'abort-controller';
+import * as db from './db';
 
 const debug = Debug('video');
 
@@ -37,10 +38,12 @@ export class Video {
   private playlistLog: fs.WriteStream | null = null;
   private folder: string = '';
   private refreshInt: NodeJS.Timeout | null = null;
+  private min10Wait: NodeJS.Timeout | null = null;
   private lastDuration: number = 2;
   private downloading: boolean = false;
   private downloadsRunning: number = 0;
   private listDownloadCount: number = 0;
+  private recordingId: number = 0;
 
   constructor(config: Config, client: ApiClient) {
     this.config = config;
@@ -102,12 +105,16 @@ export class Video {
     this.playlistLog = fs.createWriteStream(this.folder + '-playlist.log', {
       flags: 'a',
     });
+    this.recordingId = await db.start(time, this.folder, this.config.channel);
 
     try {
       const list = await this.list(variant);
       if (list.segments.length === 0) {
         debug('list empty set status to idle');
         this.status = VideoStatus.IDLE;
+        if (this.min10Wait != null) {
+          clearTimeout(this.min10Wait);
+        }
         return;
       }
       debug('set status to downloading');
@@ -120,6 +127,9 @@ export class Video {
       console.log('unable to initialize download', e);
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
+      if (this.min10Wait != null) {
+        clearTimeout(this.min10Wait);
+      }
     }
   }
 
@@ -145,26 +155,28 @@ export class Video {
         await sleep(3000);
         continue;
       }
+      // @ts-ignore
+      const dataJson = JSON.stringify(stream._data, null, '  ');
       debug('stream found %o', stream);
-      await fs.promises.writeFile(
-        this.folder + '-stream.json',
-        // @ts-ignore
-        JSON.stringify(stream._data, null, '  ')
-      );
+
+      await fs.promises.writeFile(this.folder + '-stream.json', dataJson);
       // check stream api one more time after 10 minutes
       // the api is cached in case of a sudden disconnect
       // this first call will have the stream id of the
       // last stream, so just dump everything and figure
       // it out later
-      setTimeout(async () => {
+      this.min10Wait = setTimeout(async () => {
+        this.min10Wait = null;
         const stream = await this.client.helix.streams.getStreamByUserName(
           this.config.channel
         );
         if (stream !== null) {
+          // @ts-ignore
+          const dataJson = JSON.stringify(stream._data, null, '  ');
+          await db.updateStreamData(this.recordingId, stream.id, dataJson);
           await fs.promises.writeFile(
             this.folder + '-stream-10.json',
-            // @ts-ignore
-            JSON.stringify(stream._data, null, '  ')
+            dataJson
           );
         }
       }, 1000 * 60 * 10);
@@ -195,6 +207,9 @@ export class Video {
       debug('endlist');
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
+      if (this.min10Wait != null) {
+        clearTimeout(this.min10Wait);
+      }
       clearInterval(this.refreshInt);
       this.refreshInt = null;
     }
@@ -205,12 +220,13 @@ export class Video {
       this.folder,
       segment.mediaSequenceNumber + '.ts.tmp'
     );
-    const name = path.join(
-      this.folder,
+    const filename =
       segment.mediaSequenceNumber
         .toString()
-        .padStart(this.config.filenamePaddingSize, '0') + '.ts'
-    );
+        .padStart(this.config.filenamePaddingSize, '0') + '.ts';
+    const name = path.join(this.folder, filename);
+
+    await db.startFile(this.recordingId, filename, segment.mediaSequenceNumber);
     let retries = 0;
     let controller: AbortController | null = null;
     while (retries < 15) {
@@ -259,6 +275,7 @@ export class Video {
             throw new Error('unable to parse content-length ' + clength);
           }
         }
+        await db.updateFileSize(this.recordingId, filename, totalLength);
         const out = fs.createWriteStream(tmpName, {
           flags,
         });
@@ -272,6 +289,7 @@ export class Video {
           size
         );
         if (length > 0 && length != size) {
+          await db.updateFileStatus(this.recordingId, filename, 'error');
           throw new Error(`file size does not match ${size}/${length}`);
         }
         await fs.promises.rename(tmpName, name);
@@ -279,6 +297,8 @@ export class Video {
         if (stat != null) {
           totalSize += stat.size;
         }
+        await db.updateFileStatus(this.recordingId, filename, 'done');
+        await db.updateFileDownloadSize(this.recordingId, filename, totalSize);
         if (this.segmentLog) {
           this.segmentLog.write(
             new Date().toISOString() +
