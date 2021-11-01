@@ -130,7 +130,9 @@ export class Video {
     }
     this.refreshInt = setInterval(() => {
       debug('refresh interval');
-      this.list(variant).then(this.handleList.bind(this)).catch();
+      this.list(variant)
+        .then(this.handleList.bind(this))
+        .catch(() => {});
     }, this.lastDuration * 1000);
   }
 
