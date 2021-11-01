@@ -7,8 +7,11 @@ services:
     restart: always
     environment:
       POSTGRES_PASSWORD: password
+      PGDATA: /opt/pgsql/data
     ports:
       - 5454:5432
+    volumes:
+      - ./pgdata:/opt/pgsql/data
   adminer:
     image: adminer
     restart: always
