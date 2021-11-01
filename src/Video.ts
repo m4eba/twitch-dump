@@ -226,7 +226,13 @@ export class Video {
         .padStart(this.config.filenamePaddingSize, '0') + '.ts';
     const name = path.join(this.folder, filename);
 
-    await db.startFile(this.recordingId, filename, segment.mediaSequenceNumber);
+    await db.startFile(
+      this.recordingId,
+      filename,
+      segment.mediaSequenceNumber,
+      segment.duration,
+      segment.programDateTime ? segment.programDateTime : new Date()
+    );
     let retries = 0;
     let controller: AbortController | null = null;
     while (retries < 15) {

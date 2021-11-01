@@ -58,7 +58,7 @@ export async function init(config: Config) {
           start timestamp not null,
           path text not null,
           username text not null,
-          streamid text not null DEFAULT ''
+          streamid text not null DEFAULT '',
           streamdata text not null DEFAULT ''
         );
         
@@ -70,7 +70,9 @@ export async function init(config: Config) {
           id SERIAL primary key,
           recording_id integer not null,
           name text not null,
-          seq integer not null,
+          seq integer not null,          
+          duration decimal not null,
+          datetime timestamptz not null,
           size integer not null,
           downloaded integer not null,
           hash text not null,
@@ -113,12 +115,16 @@ export async function updateStreamData(
 export async function startFile(
   recordingId: number,
   name: string,
-  seq: number
+  seq: number,
+  duration: number,
+  time: Date
 ): Promise<number> {
   if (pool == null) return 0;
+  const timestr = time.toISOString();
+  console.log('timestr', timestr);
   const result = await pool.query(
-    'INSERT into file (recording_id,name,seq,size,downloaded,hash,status) VALUES ($1,$2,$3,0,0,$4,$5) RETURNING id',
-    [recordingId, name, seq, '', 'downloading']
+    'INSERT into file (recording_id,name,seq,duration,datetime,size,downloaded,hash,status) VALUES ($1,$2,$3,$4,$5,0,0,$6,$7) RETURNING id',
+    [recordingId, name, seq, duration, time, '', 'downloading']
   );
   return result.rows[0].id;
 }
