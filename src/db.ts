@@ -107,7 +107,7 @@ export async function start(
 
 export async function stop(time: Date, recordingId: number) {
   if (pool == null) return;
-  await pool.query('UPDATE recording SET stop=$1 WHERE recording_id = $2', [
+  await pool.query('UPDATE recording SET stop=$1 WHERE  id = $2', [
     time,
     recordingId,
   ]);
@@ -120,7 +120,7 @@ export async function updateStreamData(
 ) {
   if (pool == null) return;
   await pool.query(
-    'UPDATE recording SET streamid=$1, streamdata=$2 WHERE recording_id = $3',
+    'UPDATE recording SET streamid=$1, streamdata=$2 WHERE id = $3',
     [streamId, streamData, recordingId]
   );
 }
@@ -132,7 +132,7 @@ export async function updateStreamData10(
 ) {
   if (pool == null) return;
   await pool.query(
-    'UPDATE recording SET streamid10=$1, streamdata10=$2 WHERE recording_id = $3',
+    'UPDATE recording SET streamid10=$1, streamdata10=$2 WHERE id = $3',
     [streamId, streamData, recordingId]
   );
 }
