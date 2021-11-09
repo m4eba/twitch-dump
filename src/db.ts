@@ -134,8 +134,6 @@ export async function startFile(
   time: Date
 ): Promise<number> {
   if (pool == null) return 0;
-  const timestr = time.toISOString();
-  console.log('timestr', timestr);
   const result = await pool.query(
     'INSERT into file (recording_id,name,seq,duration,datetime,size,downloaded,hash,status) VALUES ($1,$2,$3,$4,$5,0,0,$6,$7) RETURNING id',
     [recordingId, name, seq, duration, time, '', 'downloading']
