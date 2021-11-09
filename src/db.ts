@@ -55,17 +55,20 @@ export async function init(config: Config) {
       await pool.query(`
         create table recording (
           id SERIAL primary key,
-          start timestamp not null,
+          start timestamptz not null,
+          stop timestamptz,
           path text not null,
           username text not null,
           streamid text not null DEFAULT '',
           streamdata text not null DEFAULT '',
           streamid10 text not null DEFAULT '',
-          streamdata10 texte not null DEFAULT '',
+          streamdata10 text not null DEFAULT ''
         );
         
         create index recording_username_idx on recording (username);
         create index recording_streamid_idx on recording (streamid);
+        create index recording_start_idx on recording (start);
+        create index recording_stop_idx on recording (stop);
 
         create type file_status as enum ('downloading', 'error', 'done'); 
         create table file (
@@ -96,10 +99,18 @@ export async function start(
 ): Promise<number> {
   if (pool == null) return 0;
   const result = await pool.query(
-    'INSERT into recording VALUES (DEFAULT, $1, $2, $3, DEFAULT, DEFAULT) RETURNING id',
+    'INSERT into recording VALUES (DEFAULT, $1, null, $2, $3, DEFAULT, DEFAULT) RETURNING id',
     [time, folder, channel]
   );
   return result.rows[0].id;
+}
+
+export async function stop(time: Date, recordingId: number) {
+  if (pool == null) return;
+  await pool.query('UPDATE recording SET stop=$1 WHERE recording_id = $2', [
+    time,
+    recordingId,
+  ]);
 }
 
 export async function updateStreamData(

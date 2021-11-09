@@ -112,6 +112,7 @@ export class Video {
       if (list.segments.length === 0) {
         debug('list empty set status to idle');
         this.status = VideoStatus.IDLE;
+        if (this.recordingId > 0) await db.stop(new Date(), this.recordingId);
         if (this.min10Wait != null) {
           clearTimeout(this.min10Wait);
         }
@@ -127,6 +128,7 @@ export class Video {
       console.log('unable to initialize download', e);
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
+      if (this.recordingId > 0) await db.stop(new Date(), this.recordingId);
       if (this.min10Wait != null) {
         clearTimeout(this.min10Wait);
       }
@@ -209,6 +211,7 @@ export class Video {
       debug('endlist');
       debug('set status to idle');
       this.status = VideoStatus.IDLE;
+      if (this.recordingId > 0) db.stop(new Date(), this.recordingId);
       if (this.min10Wait != null) {
         clearTimeout(this.min10Wait);
       }
