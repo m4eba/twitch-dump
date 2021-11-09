@@ -59,7 +59,9 @@ export async function init(config: Config) {
           path text not null,
           username text not null,
           streamid text not null DEFAULT '',
-          streamdata text not null DEFAULT ''
+          streamdata text not null DEFAULT '',
+          streamid10 text not null DEFAULT '',
+          streamdata10 texte not null DEFAULT '',
         );
         
         create index recording_username_idx on recording (username);
@@ -107,7 +109,19 @@ export async function updateStreamData(
 ) {
   if (pool == null) return;
   await pool.query(
-    'UPDATE recording SET streamid=$1, streamData=$2 WHERE recording_id = $3',
+    'UPDATE recording SET streamid=$1, streamdata=$2 WHERE recording_id = $3',
+    [streamId, streamData, recordingId]
+  );
+}
+
+export async function updateStreamData10(
+  recordingId: number,
+  streamId: string,
+  streamData: string
+) {
+  if (pool == null) return;
+  await pool.query(
+    'UPDATE recording SET streamid10=$1, streamdata10=$2 WHERE recording_id = $3',
     [streamId, streamData, recordingId]
   );
 }

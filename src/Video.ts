@@ -173,7 +173,7 @@ export class Video {
         if (stream !== null) {
           // @ts-ignore
           const dataJson = JSON.stringify(stream._data, null, '  ');
-          await db.updateStreamData(this.recordingId, stream.id, dataJson);
+          await db.updateStreamData10(this.recordingId, stream.id, dataJson);
           await fs.promises.writeFile(
             this.folder + '-stream-10.json',
             dataJson
