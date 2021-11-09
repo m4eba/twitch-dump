@@ -5,6 +5,14 @@ export enum Dump {
   VOD = 'vod',
 }
 
+export interface Postgres {
+  host: string;
+  port: number;
+  username: string;
+  password: string;
+  database: string;
+}
+
 export interface Config {
   dump: Set<Dump>;
   path: string;
@@ -17,6 +25,7 @@ export interface Config {
   statInterval: number;
   filenamePaddingSize: number;
   refreshDownloadsCountThreshold: number;
+  postgres: Postgres | null;
 }
 
 export const defaultConfig: Partial<Config> = {

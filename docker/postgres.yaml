@@ -1,0 +1,19 @@
+version: '3.1'
+
+services:
+
+  db:
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: password
+      PGDATA: /opt/pgsql/data
+    ports:
+      - 5454:5432
+    volumes:
+      - ./pgdata:/opt/pgsql/data
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - 8080:8080
