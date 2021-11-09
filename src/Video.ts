@@ -164,6 +164,7 @@ export class Video {
       debug('stream found %o', stream);
 
       await fs.promises.writeFile(this.folder + '-stream.json', dataJson);
+      await db.updateStreamData(this.recordingId, stream.id, dataJson);
       // check stream api one more time after 10 minutes
       // the api is cached in case of a sudden disconnect
       // this first call will have the stream id of the
