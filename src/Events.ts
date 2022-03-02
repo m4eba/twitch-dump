@@ -1,4 +1,4 @@
-import { ApiClient, HelixUser, AccessToken, Channel } from 'twitch';
+import { ApiClient, HelixUser, AccessToken, HelixChannel } from 'twitch';
 import WebSocket from 'ws';
 import Debug from 'debug';
 
@@ -10,7 +10,7 @@ const debug = Debug('events');
 export class Events extends WebSocketLogger {
   private client: ApiClient;
   private user: HelixUser | null = null;
-  private channel: Channel | null = null;
+  private channel: HelixChannel | null = null;
   private token: AccessToken | null = null;
   private onlyVideoNotify: boolean = false;
 
@@ -38,7 +38,7 @@ export class Events extends WebSocketLogger {
       .then((user) => {
         debug('user %o', user);
         this.user = user;
-        return this.client.kraken.channels.getChannel(user!);
+        return this.client.helix.channels.getChannelInfo(user!);
       })
       .catch((e) => {
         console.log('unable to get channel', e);
