@@ -97,7 +97,10 @@ export class VodDownloader {
         // vod is created later
         // only test with kraken if vod is in 10 minutes of stream start
         if (vodTimeStamp - streamTimeStamp > 10 * 60 * 1000) continue;
+
+        /*
         debug('check kraken api for vod %s', v.id);
+
 
         const req = await fetch(`https://api.twitch.tv/kraken/videos/${v.id}`, {
           headers: {
@@ -115,7 +118,8 @@ export class VodDownloader {
           }
         } catch (e) {
           debug('unable to process vod info %s', e.toString());
-        }
+        }*/
+        return true;
       }
       await utils.sleep(60 * 1000);
     }
