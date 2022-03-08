@@ -25,12 +25,6 @@ interface AccessToken {
   value: string;
 }
 
-interface KrakenVideo {
-  _id: string;
-  broadcast_id: number;
-  status: 'recording' | 'recorded';
-}
-
 export class VodDownloader {
   private status: VodDownloaderStatus = VodDownloaderStatus.IDLE;
   private config: Config;
@@ -38,7 +32,6 @@ export class VodDownloader {
   private stream: HelixStream;
   private user: HelixUser | null = null;
   private vod: HelixVideo | null = null;
-  private krakeVod: KrakenVideo | null = null;
   private vodWaitTimeout = 30 * 60 * 1000;
   private updateWaitTime = 5 * 60 * 1000;
   private vodDoneTime = 20 * 60 * 1000;
@@ -119,6 +112,7 @@ export class VodDownloader {
         } catch (e) {
           debug('unable to process vod info %s', e.toString());
         }*/
+        this.vod = v;
         return true;
       }
       await utils.sleep(60 * 1000);
