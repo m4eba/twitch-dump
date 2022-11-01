@@ -77,7 +77,6 @@ export async function init(config: Config) {
         create table file (
           id SERIAL primary key,
           recording_id integer not null,
-          vod_id integer not null,
           name text not null,
           seq integer not null,          
           duration decimal not null,
@@ -92,11 +91,7 @@ export async function init(config: Config) {
         create index file_name_idx on file (name);
         create index file_seq_idx on file (seq);
 
-        create table vod (
-          id SERIAL primary ket,
-          recording_id integer not null,
-
-        );
+      
         `);
     }
   }
