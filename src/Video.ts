@@ -432,7 +432,8 @@ export class Video {
       },
     ];
     const headers = {
-      'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      //'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      'Client-ID': 'ue6666qo983tsx6so1t0vnawi233wa',
       Accept: 'application/vnd.twitchtv.v5+json',
     };
     if (this.config.oauthVideo.length > 0) {
