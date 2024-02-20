@@ -396,14 +396,34 @@ export class Video {
 
     const resp = await fetch(uri);
     const text = await resp.text();
+    if (this.playlistLog) {
+      this.playlistLog.write(`### MASTER ${new Date().toUTCString()}\n`);
+      this.playlistLog.write(text);
+      this.playlistLog.write('\n');
+    }
     const list: HLS.types.MasterPlaylist = HLS.parse(
       text
     ) as HLS.types.MasterPlaylist;
     const best = list.variants.reduce((prev, curr) => {
       let result = prev;
-      if (prev.bandwidth < curr.bandwidth) {
-        result = curr;
+      if (prev.resolution && curr.resolution) {
+        // select current if resolution is higher
+        if (prev.resolution.width < curr.resolution.width) {
+          result = curr;
+        }
+        // if resolution is same select on bandwidth
+        if (prev.resolution.width === curr.resolution.width) {
+          if (prev.bandwidth < curr.bandwidth) {
+            result = curr;
+          }
+        }
+      } else {
+        // select based on bandwidth if there is no resolution
+        if (prev.bandwidth < curr.bandwidth) {
+          result = curr;
+        }
       }
+
       debug('best format %o', result);
       return result;
     });
