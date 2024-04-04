@@ -10,6 +10,7 @@ import Debug from 'debug';
 import AbortController from 'abort-controller';
 import * as db from './db';
 
+const MAX_PLAYLIST_RETRIES = 5;
 const debug = Debug('video');
 
 function sleep(ms: number) {
@@ -69,15 +70,27 @@ export class Video {
   }
 
   private async initPlaylist() {
-    let token: AccessToken | null = null;
-    try {
-      token = await this.getAccessToken();
-    } catch (e) {
-      console.log('unable to get access token', e);
-      throw e;
+    let tries = 0;
+    while (tries < MAX_PLAYLIST_RETRIES) {
+      try {
+        let token: AccessToken | null = null;
+        try {
+          token = await this.getAccessToken();
+        } catch (e) {
+          console.log('unable to get access token', e);
+          throw e;
+        }
+        debug('accesstoken %o', token);
+        return await this.playlist(token);
+      } catch (e) {
+        debug('unable to get playlist');
+      }
+      await sleep(2000);
+      tries++;
     }
-    debug('accesstoken %o', token);
-    return await this.playlist(token);
+    throw new Error(
+      `unable to get playlist after ${MAX_PLAYLIST_RETRIES} retries`
+    );
   }
 
   private async initDownload(variant: HLS.types.Variant) {
