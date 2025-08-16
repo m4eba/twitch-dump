@@ -7,7 +7,7 @@ const debug = Debug('chats');
 
 export class Chat extends WebSocketLogger {
   constructor(config: Config) {
-    super('ws://irc-ws.chat.twitch.tv:80', 'chat', config);
+    super('wss://irc-ws.chat.twitch.tv:443', 'chat', config);
     this.config = config;
   }
 
