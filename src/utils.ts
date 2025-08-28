@@ -76,7 +76,6 @@ const hosts = [
   'd3vd9lfkzbru3h.cloudfront.net',
 ];
 
-
 export async function m3u8Url(
   stream: HelixStream,
   username: string
@@ -95,7 +94,9 @@ export async function m3u8Url(
       if (resp.status == 200) {
         return url;
       }
-    }catch(e:any){}
+    } catch (e: any) {
+      // nothing
+    }
   }
   return '';
 }
@@ -180,7 +181,7 @@ export async function downloadFile(
         log,
         error,
       };
-    } catch (e:any) {
+    } catch (e: any) {
       if (controller != null) controller.abort();
       debug('download error', e);
       error.push(`${baseName} ${length} ${e.toString()}\n`);

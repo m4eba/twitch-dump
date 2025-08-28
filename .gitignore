@@ -2,3 +2,5 @@ build
 node_modules
 config.json
 tsconfig.tsbuildinfo
+config*
+.vscode
