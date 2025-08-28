@@ -55,19 +55,22 @@ export abstract class WebSocketLogger extends EventEmitter {
       clearInterval(this.pingInt);
       this.pingInt = null;
     }
-    this.pingInt = setInterval(() => {
-      if (this.ws === null) {
-        clearInterval(this.pingInt!);
-        this.pingInt = null;
-        return;
-      }
-      if (this.ws.readyState != WebSocket.OPEN) return;
-      this.ping();
-      if (this.pingTimeout !== null) {
-        clearInterval(this.pingTimeout);
-      }
-      this.pingTimeout = setTimeout(() => this.timeout(), 15 * 1000);
-    }, 1000 * 60 * 3);
+    this.pingInt = setInterval(
+      () => {
+        if (this.ws === null) {
+          clearInterval(this.pingInt!);
+          this.pingInt = null;
+          return;
+        }
+        if (this.ws.readyState != WebSocket.OPEN) return;
+        this.ping();
+        if (this.pingTimeout !== null) {
+          clearInterval(this.pingTimeout);
+        }
+        this.pingTimeout = setTimeout(() => this.timeout(), 15 * 1000);
+      },
+      1000 * 60 * 3
+    );
 
     this.onOpen();
   }

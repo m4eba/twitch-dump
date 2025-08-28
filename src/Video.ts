@@ -183,21 +183,24 @@ export class Video {
       // this first call will have the stream id of the
       // last stream, so just dump everything and figure
       // it out later
-      this.min10Wait = setTimeout(async () => {
-        this.min10Wait = null;
-        const stream = await this.client.helix.streams.getStreamByUserName(
-          this.config.channel
-        );
-        if (stream !== null) {
-          // @ts-ignore
-          const dataJson = JSON.stringify(stream._data, null, '  ');
-          await db.updateStreamData10(this.recordingId, stream.id, dataJson);
-          await fs.promises.writeFile(
-            this.folder + '-stream-10.json',
-            dataJson
+      this.min10Wait = setTimeout(
+        async () => {
+          this.min10Wait = null;
+          const stream = await this.client.helix.streams.getStreamByUserName(
+            this.config.channel
           );
-        }
-      }, 1000 * 60 * 10);
+          if (stream !== null) {
+            // @ts-ignore
+            const dataJson = JSON.stringify(stream._data, null, '  ');
+            await db.updateStreamData10(this.recordingId, stream.id, dataJson);
+            await fs.promises.writeFile(
+              this.folder + '-stream-10.json',
+              dataJson
+            );
+          }
+        },
+        1000 * 60 * 10
+      );
       break;
     }
   }
