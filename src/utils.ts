@@ -56,11 +56,26 @@ export async function fileExists(name: string): Promise<boolean> {
 }
 
 const hosts = [
+  'd2nvs31859zcd8.cloudfront.net',
   'dqrpb9wgowsf5.cloudfront.net',
   'd2e2de1etea730.cloudfront.net',
-  'd2vjef5jvl6bfs.cloudfront.net',
   'vod-secure.twitch.tv',
+  'd2vjef5jvl6bfs.cloudfront.net',
+  'vod-metro.twitch.tv',
+  'vod-pop-secure.twitch.tv',
+  'ds0h3roq6wcgc.cloudfront.net',
+  'd2aba1wr3818hz.cloudfront.net',
+  'd3c27h4odz752x.cloudfront.net',
+  'dgeft87wbj63p.cloudfront.net',
+  'd1m7jfoe9zdc1j.cloudfront.net',
+  'd1mhjrowxxagfy.cloudfront.net',
+  'd1ymi26ma8va5x.cloudfront.net',
+  'd3aqoihi2n8ty8.cloudfront.net',
+  'd3vd9lfkzbru3h.cloudfront.net',
+  'ddacn6pr5v0tl.cloudfront.net',
+  'd3vd9lfkzbru3h.cloudfront.net',
 ];
+
 
 export async function m3u8Url(
   stream: HelixStream,
@@ -75,10 +90,12 @@ export async function m3u8Url(
   for (let i = 0; i < hosts.length; ++i) {
     const url = `https://${hosts[i]}/${sha1}_${str}/chunked/index-dvr.m3u8`;
     debug('test url %s', url);
-    const resp = await fetch(url, { method: 'HEAD' });
-    if (resp.status == 200) {
-      return url;
-    }
+    try {
+      const resp = await fetch(url, { method: 'HEAD' });
+      if (resp.status == 200) {
+        return url;
+      }
+    }catch(e:any){}
   }
   return '';
 }
@@ -163,7 +180,7 @@ export async function downloadFile(
         log,
         error,
       };
-    } catch (e) {
+    } catch (e:any) {
       if (controller != null) controller.abort();
       debug('download error', e);
       error.push(`${baseName} ${length} ${e.toString()}\n`);
