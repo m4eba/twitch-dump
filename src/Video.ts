@@ -470,6 +470,7 @@ export class Video {
       Accept: 'application/vnd.twitchtv.v5+json',
     };
     if (this.config.oauthVideo.length > 0) {
+      // @ts-ignore
       headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
     }
     debug('gql accesstoken, headers %o', headers);

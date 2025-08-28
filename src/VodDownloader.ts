@@ -240,7 +240,7 @@ export class VodDownloader {
             zeroResultTime = new Date().getTime();
           }
         }
-      } catch (e) {
+      } catch (e: any) {
         if (this.errorLog) {
           this.errorLog.write('download error: ' + e.toString());
         }
@@ -323,6 +323,7 @@ export class VodDownloader {
         Accept: 'application/vnd.twitchtv.v5+json',
       };
       if (this.config.oauthVideo.length > 0) {
+        // @ts-ignore
         headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
       }
       debug('gql vod accesstoken, headers %o', headers);

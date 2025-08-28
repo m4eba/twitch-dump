@@ -16,7 +16,7 @@ export async function init(config: Config) {
 
       // make one query to test for database
       await pool.query('select 1');
-    } catch (e) {
+    } catch (e: any) {
       pool = null;
       if (
         e.toString() ==
