@@ -77,9 +77,16 @@ export class Video {
         try {
           token = await this.getAccessToken();
         } catch (e) {
-          console.log('unable to get access token', e);
-          throw e;
+          console.log('unable to get access token witch cache', e);
         }
+        if (!token) {
+          try {
+            token = await this.getAccessToken2();
+          } catch (e) {
+            console.log('unable to get access token with template', e);
+          }
+        }
+        if (!token) throw new Error('unable to get token');
         debug('accesstoken %o', token);
         return await this.playlist(token);
       } catch (e) {
@@ -465,6 +472,53 @@ export class Video {
               '0828119ded1c13477966434e15800ff57ddacf13ba1911c129dc2200705b0712',
           },
         },
+      },
+    ];
+    const headers = {
+      //'Client-ID': 'kimne78kx3ncx6brgo4mv6wki5h1ko',
+      'Client-ID': 'ue6666qo983tsx6so1t0vnawi233wa',
+      Accept: 'application/vnd.twitchtv.v5+json',
+    };
+    if (this.config.oauthVideo.length > 0) {
+      // @ts-ignore
+      headers['Authorization'] = `OAuth ${this.config.oauthVideo}`;
+    }
+    debug('gql accesstoken, headers %o', headers);
+    const resp = await fetch('https://gql.twitch.tv/gql', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(req),
+    });
+    const result = await resp.json();
+
+    try {
+      const data: AccessToken = {
+        sig: result[0].data.streamPlaybackAccessToken.signature,
+        token: result[0].data.streamPlaybackAccessToken.value,
+        expires_at: '',
+      };
+      return data;
+    } catch (e) {
+      console.log('unable to create access token', result);
+      throw e;
+    }
+  }
+
+  private async getAccessToken2(): Promise<AccessToken> {
+    // access token via graphql
+    const req = [
+      {
+        operationName: 'PlaybackAccessToken_Template',
+        variables: {
+          isLive: true,
+          isVod: false,
+          login: this.config.channel,
+          platform: 'web',
+          playerType: 'site',
+          vodID: '',
+        },
+        query:
+          'query PlaybackAccessToken_Template($login: String!, $isLive: Boolean!, $vodID: ID!, $isVod: Boolean!, $playerType: String!, $platform: String!) {  streamPlaybackAccessToken(channelName: $login, params: {platform: $platform, playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isLive) {    value    signature   authorization { isForbidden forbiddenReasonCode }   __typename  }  videoPlaybackAccessToken(id: $vodID, params: {platform: $platform, playerBackend: "mediaplayer", playerType: $playerType}) @include(if: $isVod) {    value    signature   __typename  }}',
       },
     ];
     const headers = {
