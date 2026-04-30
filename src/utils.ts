@@ -8,6 +8,16 @@ import AbortController from 'abort-controller';
 
 const debug = Debug('utils');
 
+export function randomString(length = 20): string {
+  const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  const charsLength = chars.length;
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * charsLength));
+  }
+  return result;
+}
+
 export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -74,6 +84,7 @@ const hosts = [
   'd3vd9lfkzbru3h.cloudfront.net',
   'ddacn6pr5v0tl.cloudfront.net',
   'd3vd9lfkzbru3h.cloudfront.net',
+  'd3fi1amfgojobc.cloudfront.net',
 ];
 
 export async function m3u8Url(
