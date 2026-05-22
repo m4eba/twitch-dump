@@ -45,7 +45,7 @@
     "command-line-usage": "^6.1.0",
     "debug": "^4.1.1",
     "hls-parser": "^0.7.0",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^2.6.7",
     "pg": "^8.6.0",
     "request-promise-native": "^1.0.8",
     "twitch": "^4.4.6",
