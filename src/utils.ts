@@ -22,6 +22,28 @@ export function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+// file extension of an url pathname, fallback if there is none
+export function urlExtension(uri: string, fallback: string): string {
+  try {
+    const ext = path.extname(new URL(uri).pathname);
+    if (ext.length > 0) return ext;
+  } catch (e) {
+    debug('unable to parse url %s %o', uri, e);
+  }
+  return fallback;
+}
+
+// url pathname without query, to compare urls where
+// only the auth token in the query rotates
+export function urlPathname(uri: string): string {
+  try {
+    return new URL(uri).pathname;
+  } catch (e) {
+    debug('unable to parse url %s %o', uri, e);
+    return uri;
+  }
+}
+
 export function timeoutPipe(
   ins: NodeJS.ReadableStream,
   outs: NodeJS.WritableStream,
