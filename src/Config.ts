@@ -32,5 +32,8 @@ export interface Config {
 export const defaultConfig: Partial<Config> = {
   filenamePaddingSize: 5,
   refreshDownloadsCountThreshold: 3,
-  supportedCodecs: 'av1,h265,h264',
+  // both hevc aliases: usher honors one of h265/hevc depending on
+  // path, and ignores the unknown one. needed to negotiate the
+  // 1440p hevc source on enhanced broadcasting streams
+  supportedCodecs: 'av1,hevc,h265,h264',
 };
