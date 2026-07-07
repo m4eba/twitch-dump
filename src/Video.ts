@@ -34,6 +34,7 @@ export class Video {
   private client: ApiClient;
   private status: VideoStatus = VideoStatus.IDLE;
   private sequenceNumber = -1;
+  private mapUri: string | null = null;
   private segmentInfo: fs.WriteStream | null = null;
   private segmentLog: fs.WriteStream | null = null;
   private playlistLog: fs.WriteStream | null = null;
@@ -107,6 +108,7 @@ export class Video {
     if (month.length === 1) month = '0' + month;
 
     this.sequenceNumber = -1;
+    this.mapUri = null;
     this.folder = path.join(
       this.config.path,
       'video',
@@ -221,6 +223,18 @@ export class Video {
           `${seg.mediaSequenceNumber},${seg.duration},${time}\n`
         );
       }
+      // fmp4 initialization segment, download when it changes
+      // compare without query, the auth token rotates on refresh
+      if (seg.map && utils.urlPathname(seg.map.uri) !== this.mapUri) {
+        this.mapUri = utils.urlPathname(seg.map.uri);
+        console.log('download init segment', seg.mediaSequenceNumber);
+        debug(
+          'download init segment %d %s',
+          seg.mediaSequenceNumber,
+          seg.map.uri
+        );
+        this.downloadInit(seg, seg.map.uri);
+      }
       console.log('download segment', seg.mediaSequenceNumber);
       debug('download segment %d', seg.mediaSequenceNumber);
       this.listDownloadCount++;
@@ -244,16 +258,36 @@ export class Video {
     }
   }
 
-  private async downloadSegment(segment: HLS.types.Segment) {
-    const tmpName = path.join(
-      this.folder,
-      segment.mediaSequenceNumber + '.ts.tmp'
-    );
+  private async downloadInit(segment: HLS.types.Segment, mapUri: string) {
+    const ext = utils.urlExtension(mapUri, '.mp4');
+    // -init sorts before the segment file with the same sequence number
     const filename =
       segment.mediaSequenceNumber
         .toString()
-        .padStart(this.config.filenamePaddingSize, '0') + '.ts';
-    const name = path.join(this.folder, filename);
+        .padStart(this.config.filenamePaddingSize, '0') +
+      '-init' +
+      ext;
+
+    await db.startFile(
+      this.recordingId,
+      filename,
+      segment.mediaSequenceNumber,
+      0,
+      segment.programDateTime ? segment.programDateTime : new Date()
+    );
+    await this.downloadFile(
+      mapUri,
+      filename,
+      `${segment.mediaSequenceNumber}-init`
+    );
+  }
+
+  private async downloadSegment(segment: HLS.types.Segment) {
+    const ext = utils.urlExtension(segment.uri, '.ts');
+    const filename =
+      segment.mediaSequenceNumber
+        .toString()
+        .padStart(this.config.filenamePaddingSize, '0') + ext;
 
     await db.startFile(
       this.recordingId,
@@ -262,6 +296,16 @@ export class Video {
       segment.duration,
       segment.programDateTime ? segment.programDateTime : new Date()
     );
+    await this.downloadFile(
+      segment.uri,
+      filename,
+      segment.mediaSequenceNumber.toString()
+    );
+  }
+
+  private async downloadFile(uri: string, filename: string, label: string) {
+    const tmpName = path.join(this.folder, filename + '.tmp');
+    const name = path.join(this.folder, filename);
     let retries = 0;
     let controller: AbortController | null = null;
     while (retries < 15) {
@@ -280,13 +324,13 @@ export class Video {
         let flags = 'w';
 
         if (stat != null) {
-          debug(`${segment.mediaSequenceNumber}: resume at`, stat.size);
+          debug(`${label}: resume at`, stat.size);
           headers = {
             Range: `bytes=${stat.size}-`,
           };
         }
         controller = new AbortController();
-        const resp = await fetch(segment.uri, {
+        const resp = await fetch(uri, {
           headers,
           signal: controller.signal,
         });
@@ -297,7 +341,7 @@ export class Video {
         const range = resp.headers.get('content-range');
         if (range != null) {
           flags = 'a';
-          debug(`${segment.mediaSequenceNumber}: range header`, range);
+          debug(`${label}: range header`, range);
         }
         if (clength != null) {
           try {
@@ -317,12 +361,7 @@ export class Video {
 
         const size = await utils.timeoutPipe(resp.body, out, 30 * 1000);
 
-        debug(
-          '%d - length %d file size %d',
-          segment.mediaSequenceNumber,
-          length,
-          size
-        );
+        debug('%s - length %d file size %d', label, length, size);
         if (length > 0 && length != size) {
           await db.updateFileStatus(this.recordingId, filename, 'error');
           throw new Error(`file size does not match ${size}/${length}`);
@@ -337,21 +376,16 @@ export class Video {
         if (this.segmentLog) {
           this.segmentLog.write(
             new Date().toISOString() +
-              ` ${segment.mediaSequenceNumber} ${totalSize}/${totalLength} ok\n`
+              ` ${label} ${totalSize}/${totalLength} ok\n`
           );
         }
         return;
       } catch (e) {
         if (controller != null) controller.abort();
-        debug(
-          'unable to download segment %d: %o',
-          segment.mediaSequenceNumber,
-          e
-        );
+        debug('unable to download segment %s: %o', label, e);
         if (this.segmentLog) {
           this.segmentLog.write(
-            new Date().toISOString() +
-              ` ${segment.mediaSequenceNumber} err: ${e}\n`
+            new Date().toISOString() + ` ${label} err: ${e}\n`
           );
         }
       } finally {
@@ -414,6 +448,9 @@ export class Video {
     uri.searchParams.append('type', 'any');
     uri.searchParams.append('allow_source', 'true');
     uri.searchParams.append('allow_spectre', 'false');
+    if (this.config.supportedCodecs.length > 0) {
+      uri.searchParams.append('supported_codecs', this.config.supportedCodecs);
+    }
     uri.searchParams.append('sig', token.sig);
     uri.searchParams.append('token', token.token);
 
